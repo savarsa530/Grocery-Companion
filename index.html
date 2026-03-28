@@ -414,8 +414,9 @@
     // --- Config bootstrap ---
 
     function applyTheme() {
+      const preset = CONFIG.customTheme || THEMES[CONFIG.activeTheme] || THEMES.sage;
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const t = prefersDark ? CONFIG.theme.dark : CONFIG.theme.light;
+      const t = prefersDark ? preset.dark : preset.light;
       const root = document.documentElement;
       root.style.setProperty('--color-background-primary',   t.backgroundPrimary);
       root.style.setProperty('--color-background-secondary', t.backgroundSecondary);

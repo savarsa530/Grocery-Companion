@@ -23,6 +23,14 @@ A personal grocery list web app — shopping made intentional.
 
 All personalization lives in `config.js` — it's the only file you need to edit.
 
+**Change the app name:**
+```js
+app: {
+  name: "My Grocery Companion",
+  subtitle: "Let's get shopping.",
+}
+```
+
 **Change the store:**
 ```js
 store: {
@@ -30,10 +38,26 @@ store: {
   searchUrl: "https://www.target.com/s?searchTerm={query}",
 }
 ```
-
 Use `{query}` as the placeholder for the search term. Works with any store that has a search URL.
 
-**Change the app name, color theme, or default sections** — all in the same file.
+**Change the theme:**
+```js
+activeTheme: "ocean",  // "sage" | "ocean" | "berry" | "forest"
+```
+Both light and dark variants are included in every preset and switch automatically with the OS setting.
+
+To use fully custom colors instead:
+```js
+customTheme: {
+  light: { backgroundPrimary: "#fff", backgroundSecondary: "#f5f5f5", ... },
+  dark:  { backgroundPrimary: "#111", backgroundSecondary: "#1a1a1a", ... },
+}
+```
+
+**Change default sections:**
+```js
+defaultSections: ["Produce", "Bakery", "Deli", "Drinks", "Other"],
+```
 
 ## Stack
 
