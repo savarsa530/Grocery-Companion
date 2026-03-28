@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sage & Steph Grocery Companion</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --color-background-primary: #ffffff;
+      --color-background-secondary: #f8f7f5;
+      --color-background-tertiary: #f0ede8;
+      --color-background-info: #e6f1fb;
+      --color-background-success: #eaf3de;
+      --color-background-danger: #fcebeb;
+      --color-text-primary: #2c2c2a;
+      --color-text-secondary: #888780;
+      --color-text-tertiary: #b4b2a9;
+      --color-text-info: #185fa5;
+      --color-text-success: #3b6d11;
+      --color-text-danger: #a32d2d;
+      --color-border-tertiary: rgba(0, 0, 0, 0.15);
+      --color-border-secondary: rgba(0, 0, 0, 0.3);
+      --color-border-primary: rgba(0, 0, 0, 0.4);
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      --border-radius-md: 8px;
+      --border-radius-lg: 12px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-background-primary: #1a1a1a;
+        --color-background-secondary: #262623;
+        --color-background-tertiary: #323230;
+        --color-background-info: #042c53;
+        --color-background-success: #173404;
+        --color-background-danger: #501313;
+        --color-text-primary: #e8e8e5;
+        --color-text-secondary: #9d9d9a;
+        --color-text-tertiary: #6b6b68;
+        --color-text-info: #b5d4f4;
+        --color-text-success: #97c459;
+        --color-text-danger: #f09595;
+      }
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-background-tertiary);
+      color: var(--color-text-primary);
+      line-height: 1.6;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="number"],
+    select,
+    textarea {
+      font-family: inherit;
+      font-size: 15px;
+      padding: 0.5rem 0.75rem;
+      border: 0.5px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-md);
+      background: var(--color-background-primary);
+      color: var(--color-text-primary);
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:hover,
+    input[type="email"]:hover,
+    input[type="number"]:hover,
+    select:hover,
+    textarea:hover {
+      border-color: var(--color-border-secondary);
+    }
+
+    input[type="text"]:focus,
+    input[type="email"]:focus,
+    input[type="number"]:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--color-border-primary);
+    }
+
+    button {
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border: 0.5px solid var(--color-border-secondary);
+      border-radius: var(--border-radius-md);
+      background: transparent;
+      color: var(--color-text-primary);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    button:hover {
+      background: var(--color-background-secondary);
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    a {
+      color: var(--color-text-info);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 500;
+      margin: 0 0 0.5rem 0;
+      color: var(--color-text-primary);
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      margin: 0 0 2rem 0;
+    }
+
+    .card {
+      background: var(--color-background-secondary);
+      border: 0.5px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-lg);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    h2 {
+      font-size: 16px;
+      font-weight: 500;
+      margin: 0 0 1rem 0;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 1rem;
+    }
+
+    .input-group input {
+      flex: 1;
+    }
+
+    .input-group select {
+      width: 140px;
+    }
+
+    .input-group button {
+      min-width: 100px;
+    }
+
+    .quick-add {
+      margin-top: 1rem;
+    }
+
+    .quick-add-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      margin: 0 0 0.75rem 0;
+      display: block;
+    }
+
+    .quick-add-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .quick-add-btn {
+      padding: 6px 12px;
+      font-size: 13px;
+      background: var(--color-background-primary);
+      border: 0.5px solid var(--color-border-secondary);
+      border-radius: var(--border-radius-md);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .section-group {
+      background: var(--color-background-primary);
+      border: 0.5px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-lg);
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+
+    .section-header {
+      padding: 0.75rem 1.25rem;
+      background: var(--color-background-secondary);
+      border-bottom: 0.5px solid var(--color-border-tertiary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .section-header h3 {
+      font-size: 14px;
+      font-weight: 500;
+      margin: 0;
+      color: var(--color-text-primary);
+    }
+
+    .section-header button {
+      background: transparent;
+      border: none;
+      color: var(--color-text-tertiary);
+      cursor: pointer;
+      font-size: 12px;
+      padding: 0;
+    }
+
+    .section-items {
+      padding: 0.75rem;
+    }
+
+    .item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem;
+      border-bottom: 0.5px solid var(--color-border-tertiary);
+      font-size: 15px;
+    }
+
+    .item-row:last-child {
+      border-bottom: none;
+    }
+
+    .item-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .action-btn {
+      font-size: 12px;
+      padding: 4px 8px;
+      border: 0.5px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-md);
+      cursor: pointer;
+      background: transparent;
+    }
+
+    .action-btn.find {
+      background: var(--color-background-info);
+      color: var(--color-text-info);
+      border: none;
+    }
+
+    .action-btn.copy {
+      background: var(--color-background-secondary);
+    }
+
+    .action-btn.copy.copied {
+      background: var(--color-background-success);
+      color: var(--color-text-success);
+    }
+
+    .action-btn.heart {
+      background: transparent;
+    }
+
+    .action-btn.delete {
+      color: var(--color-text-danger);
+    }
+
+    .tags-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 1rem;
+    }
+
+    .tag {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: var(--color-background-primary);
+      border: 0.5px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-md);
+      font-size: 14px;
+    }
+
+    .tag button {
+      background: transparent;
+      border: none;
+      color: var(--color-text-tertiary);
+      cursor: pointer;
+      font-size: 12px;
+      padding: 0;
+      margin-left: 4px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .fav-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .fav-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      background: var(--color-background-primary);
+      border: 0.5px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-md);
+      font-size: 14px;
+    }
+
+    .fav-name {
+      flex: 1;
+    }
+
+    .fav-section {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      margin-left: 8px;
+    }
+
+    .fav-delete {
+      background: transparent;
+      border: none;
+      color: var(--color-text-danger);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 0;
+    }
+
+    .empty-state {
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      margin: 0;
+    }
+
+    .inline-add {
+      display: flex;
+      gap: 8px;
+    }
+
+    .inline-add input {
+      flex: 1;
+    }
+
+    .status-bar {
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+      text-align: right;
+      margin-bottom: 1rem;
+    }
+
+    .status-bar.error {
+      color: var(--color-text-danger);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Sage & Steph Grocery Companion</h1>
+    <p class="subtitle">Shopping made intentional. <span id="itemCount">0</span> items, <span id="favCount">0</span> favorites.</p>
+    <div id="statusBar" class="status-bar hidden"></div>
+
+    <!-- Add Item Section -->
+    <div class="card">
+      <h2>Add to your list</h2>
+      <div class="input-group">
+        <input
+          type="text"
+          id="newItem"
+          placeholder="What do you need?"
+          onkeypress="handleKeyPress(event)"
+        />
+        <select id="newSection"></select>
+        <button onclick="addItem()">Add item</button>
+      </div>
+
+      <div id="quickAddContainer" class="hidden quick-add">
+        <label class="quick-add-label">Quick add favorites</label>
+        <div id="quickAddButtons" class="quick-add-buttons"></div>
+      </div>
+    </div>
+
+    <!-- Shopping List -->
+    <div id="shoppingListContainer" class="hidden">
+      <h2>Your shopping list</h2>
+      <div id="shoppingList"></div>
+    </div>
+
+    <!-- Sections Manager -->
+    <div class="card">
+      <h2>Manage sections</h2>
+      <div id="sectionsContainer" class="tags-group"></div>
+      <div id="addSectionForm" class="hidden inline-add">
+        <input
+          type="text"
+          id="newSectionName"
+          placeholder="New section name"
+          onkeypress="handleSectionKeyPress(event)"
+        />
+        <button onclick="addNewSection()">Add</button>
+        <button onclick="cancelAddSection()">Cancel</button>
+      </div>
+      <button id="addSectionBtn" onclick="showAddSectionForm()">+ Add section</button>
+    </div>
+
+    <!-- Favorites Manager -->
+    <div class="card">
+      <h2>Your favorites (<span id="favCountDetail">0</span>)</h2>
+      <div id="favoritesContainer"></div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://lrmdawizqxfaoncddwnz.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWRhd2l6cXhmYW9uY2Rkd256Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMjI2MDYsImV4cCI6MjA4OTU5ODYwNn0.jlPZgYiGC71jZVWZg_ub0WxFO53ONF42PApk3AsUEUw';
+
+    let items = [];
+    let favorites = [];
+    let sections = [];
+
+    // --- Supabase helpers ---
+
+    async function sb(path, options = {}) {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': options.prefer || '',
+          ...options.headers
+        },
+        method: options.method || 'GET',
+        body: options.body ? JSON.stringify(options.body) : undefined
+      });
+
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(err);
+      }
+
+      const text = await res.text();
+      return text ? JSON.parse(text) : null;
+    }
+
+    function setStatus(msg, isError = false) {
+      const bar = document.getElementById('statusBar');
+      bar.textContent = msg;
+      bar.className = 'status-bar' + (isError ? ' error' : '');
+      bar.classList.remove('hidden');
+      if (!isError) setTimeout(() => bar.classList.add('hidden'), 2500);
+    }
+
+    // --- Data loading ---
+
+    async function loadData() {
+      try {
+        const [sects, favs, itms] = await Promise.all([
+          sb('sections?order=position.asc,name.asc'),
+          sb('favorites?order=created_at.asc'),
+          sb('items?order=created_at.asc')
+        ]);
+        sections = sects.map(s => s.name);
+        favorites = favs;
+        items = itms;
+        updateUI();
+      } catch (e) {
+        setStatus('Could not connect to database. Check your connection.', true);
+        console.error(e);
+      }
+    }
+
+    // --- Items ---
+
+    async function addItem() {
+      const input = document.getElementById('newItem');
+      const sectionEl = document.getElementById('newSection');
+      const name = input.value.trim();
+      if (!name) return;
+
+      input.value = '';
+      try {
+        const [created] = await sb('items?select=*', {
+          method: 'POST',
+          prefer: 'return=representation',
+          body: { name, section: sectionEl.value }
+        });
+        items.push(created);
+        updateUI();
+      } catch (e) {
+        setStatus('Failed to add item.', true);
+        console.error(e);
+      }
+    }
+
+    async function deleteItem(id) {
+      try {
+        await sb(`items?id=eq.${id}`, { method: 'DELETE' });
+        items = items.filter(i => i.id !== id);
+        updateUI();
+      } catch (e) {
+        setStatus('Failed to delete item.', true);
+      }
+    }
+
+    async function clearSection(sectionName) {
+      try {
+        await sb(`items?section=eq.${encodeURIComponent(sectionName)}`, { method: 'DELETE' });
+        items = items.filter(i => i.section !== sectionName);
+        updateUI();
+      } catch (e) {
+        setStatus('Failed to clear section.', true);
+      }
+    }
+
+    // --- Favorites ---
+
+    async function addToFavorites(id) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+      // Avoid duplicates
+      if (favorites.some(f => f.name.toLowerCase() === item.name.toLowerCase())) {
+        setStatus(`"${item.name}" is already in favorites.`);
+        return;
+      }
+      try {
+        const [created] = await sb('favorites?select=*', {
+          method: 'POST',
+          prefer: 'return=representation',
+          body: { name: item.name, section: item.section }
+        });
+        favorites.push(created);
+        updateUI();
+      } catch (e) {
+        setStatus('Failed to save favorite.', true);
+      }
+    }
+
+    async function removeFavorite(id) {
+      try {
+        await sb(`favorites?id=eq.${id}`, { method: 'DELETE' });
+        favorites = favorites.filter(f => f.id !== id);
+        updateUI();
+      } catch (e) {
+        setStatus('Failed to remove favorite.', true);
+      }
+    }
+
+    async function addFavoriteToList(favId) {
+      const fav = favorites.find(f => f.id === favId);
+      if (!fav) return;
+      try {
+        const [created] = await sb('items?select=*', {
+          method: 'POST',
+          prefer: 'return=representation',
+          body: { name: fav.name, section: fav.section }
+        });
+        items.push(created);
+        updateUI();
+      } catch (e) {
+        setStatus('Failed to add item.', true);
+      }
+    }
+
+    // --- Sections ---
+
+    async function deleteSection(sectionName) {
+      try {
+        await sb(`sections?name=eq.${encodeURIComponent(sectionName)}`, { method: 'DELETE' });
+        await sb(`items?section=eq.${encodeURIComponent(sectionName)}`, { method: 'DELETE' });
+        sections = sections.filter(s => s !== sectionName);
+        items = items.filter(i => i.section !== sectionName);
+        updateUI();
+      } catch (e) {
+        setStatus('Failed to delete section.', true);
+      }
+    }
+
+    async function addNewSection() {
+      const input = document.getElementById('newSectionName');
+      const name = input.value.trim();
+      if (!name || sections.includes(name)) return;
+
+      try {
+        await sb('sections?select=*', {
+          method: 'POST',
+          prefer: 'return=representation',
+          body: { name, position: sections.length }
+        });
+        sections.push(name);
+        input.value = '';
+        updateUI();
+        document.getElementById('addSectionForm').classList.add('hidden');
+        document.getElementById('addSectionBtn').classList.remove('hidden');
+      } catch (e) {
+        setStatus('Failed to add section.', true);
+      }
+    }
+
+    function showAddSectionForm() {
+      document.getElementById('addSectionBtn').classList.add('hidden');
+      document.getElementById('addSectionForm').classList.remove('hidden');
+      document.getElementById('newSectionName').focus();
+    }
+
+    function cancelAddSection() {
+      document.getElementById('addSectionForm').classList.add('hidden');
+      document.getElementById('addSectionBtn').classList.remove('hidden');
+    }
+
+    // --- Utilities ---
+
+    function generateWalmartLink(itemName) {
+      return `https://www.walmart.com/search?q=${encodeURIComponent(itemName)}`;
+    }
+
+    function copyToClipboard(text, id) {
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById(`copy-${id}`);
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copy';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    }
+
+    function handleKeyPress(event) {
+      if (event.key === 'Enter') addItem();
+    }
+
+    function handleSectionKeyPress(event) {
+      if (event.key === 'Enter') addNewSection();
+    }
+
+    // --- UI Rendering ---
+
+    function updateUI() {
+      updateCounts();
+      updateSectionSelect();
+      updateShoppingList();
+      updateSectionsManager();
+      updateFavoritesUI();
+      updateQuickAdd();
+    }
+
+    function updateCounts() {
+      document.getElementById('itemCount').textContent = items.length;
+      document.getElementById('favCount').textContent = favorites.length;
+      document.getElementById('favCountDetail').textContent = favorites.length;
+    }
+
+    function updateSectionSelect() {
+      const select = document.getElementById('newSection');
+      const currentValue = select.value;
+      select.innerHTML = '';
+      sections.forEach(section => {
+        const option = document.createElement('option');
+        option.value = section;
+        option.textContent = section;
+        select.appendChild(option);
+      });
+      if (sections.includes(currentValue)) {
+        select.value = currentValue;
+      } else if (sections.length > 0) {
+        select.value = sections[0];
+      }
+    }
+
+    function updateShoppingList() {
+      const container = document.getElementById('shoppingListContainer');
+      const list = document.getElementById('shoppingList');
+
+      if (items.length === 0) {
+        container.classList.add('hidden');
+        return;
+      }
+
+      container.classList.remove('hidden');
+      list.innerHTML = '';
+
+      sections.forEach(section => {
+        const sectionItems = items.filter(item => item.section === section);
+        if (sectionItems.length === 0) return;
+
+        const sectionDiv = document.createElement('div');
+        sectionDiv.className = 'section-group';
+
+        const header = document.createElement('div');
+        header.className = 'section-header';
+        header.innerHTML = `<h3>${section} (${sectionItems.length})</h3>`;
+
+        const clearBtn = document.createElement('button');
+        clearBtn.textContent = 'Clear section';
+        clearBtn.onclick = () => clearSection(section);
+        header.appendChild(clearBtn);
+
+        const itemsDiv = document.createElement('div');
+        itemsDiv.className = 'section-items';
+
+        sectionItems.forEach(item => {
+          const row = document.createElement('div');
+          row.className = 'item-row';
+
+          const nameSpan = document.createElement('span');
+          nameSpan.textContent = item.name;
+
+          const actions = document.createElement('div');
+          actions.className = 'item-actions';
+
+          const findLink = document.createElement('a');
+          findLink.href = generateWalmartLink(item.name);
+          findLink.target = '_blank';
+          findLink.rel = 'noopener noreferrer';
+          findLink.className = 'action-btn find';
+          findLink.textContent = 'Find';
+
+          const copyBtn = document.createElement('button');
+          copyBtn.id = `copy-${item.id}`;
+          copyBtn.className = 'action-btn copy';
+          copyBtn.textContent = 'Copy';
+          copyBtn.onclick = () => copyToClipboard(item.name, item.id);
+
+          const heartBtn = document.createElement('button');
+          heartBtn.className = 'action-btn heart';
+          heartBtn.title = 'Save to favorites';
+          heartBtn.textContent = '♡';
+          heartBtn.onclick = () => addToFavorites(item.id);
+
+          const deleteBtn = document.createElement('button');
+          deleteBtn.className = 'action-btn delete';
+          deleteBtn.textContent = '✕';
+          deleteBtn.onclick = () => deleteItem(item.id);
+
+          actions.append(findLink, copyBtn, heartBtn, deleteBtn);
+          row.append(nameSpan, actions);
+          itemsDiv.appendChild(row);
+        });
+
+        sectionDiv.appendChild(header);
+        sectionDiv.appendChild(itemsDiv);
+        list.appendChild(sectionDiv);
+      });
+    }
+
+    function updateSectionsManager() {
+      const container = document.getElementById('sectionsContainer');
+      container.innerHTML = '';
+      sections.forEach(section => {
+        const tag = document.createElement('div');
+        tag.className = 'tag';
+        const label = document.createElement('span');
+        label.textContent = section;
+        const btn = document.createElement('button');
+        btn.textContent = '✕';
+        btn.onclick = () => deleteSection(section);
+        tag.append(label, btn);
+        container.appendChild(tag);
+      });
+    }
+
+    function updateFavoritesUI() {
+      const container = document.getElementById('favoritesContainer');
+      if (favorites.length === 0) {
+        container.innerHTML = '<p class="empty-state">Heart items you shop for regularly, and they\'ll appear above as quick-add buttons.</p>';
+        return;
+      }
+      container.innerHTML = '';
+      const list = document.createElement('div');
+      list.className = 'fav-list';
+      favorites.forEach(fav => {
+        const item = document.createElement('div');
+        item.className = 'fav-item';
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'fav-name';
+        nameDiv.innerHTML = `<span>${fav.name}</span><span class="fav-section">${fav.section}</span>`;
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'fav-delete';
+        deleteBtn.textContent = '✕';
+        deleteBtn.onclick = () => removeFavorite(fav.id);
+        item.append(nameDiv, deleteBtn);
+        list.appendChild(item);
+      });
+      container.appendChild(list);
+    }
+
+    function updateQuickAdd() {
+      const container = document.getElementById('quickAddContainer');
+      const buttons = document.getElementById('quickAddButtons');
+      if (favorites.length === 0) {
+        container.classList.add('hidden');
+        return;
+      }
+      container.classList.remove('hidden');
+      buttons.innerHTML = '';
+      favorites.slice(0, 8).forEach(fav => {
+        const btn = document.createElement('button');
+        btn.className = 'quick-add-btn';
+        btn.textContent = `+ ${fav.name}`;
+        btn.onclick = () => addFavoriteToList(fav.id);
+        buttons.appendChild(btn);
+      });
+    }
+
+    // Initialize
+    loadData();
+  </script>
+</body>
+</html>
