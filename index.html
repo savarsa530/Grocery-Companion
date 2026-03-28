@@ -258,6 +258,65 @@
       color: var(--color-text-danger);
     }
 
+    /* Check-off */
+    .item-check {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 1.5px solid var(--color-border-secondary);
+      background: transparent;
+      cursor: pointer;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: var(--color-text-success);
+      padding: 0;
+      margin-right: 10px;
+      transition: background 0.15s, border-color 0.15s;
+      min-height: unset;
+      border-color: var(--color-border-secondary);
+    }
+
+    .item-check.checked {
+      background: var(--color-background-success);
+      border-color: var(--color-text-success);
+    }
+
+    .item-name {
+      flex: 1;
+      transition: opacity 0.2s;
+    }
+
+    .item-name.checked {
+      text-decoration: line-through;
+      opacity: 0.45;
+    }
+
+    .list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .list-header h2 {
+      margin-bottom: 0;
+    }
+
+    .clear-checked-btn {
+      font-size: 13px;
+      padding: 4px 10px;
+      color: var(--color-text-danger);
+      border-color: var(--color-text-danger);
+      opacity: 0.8;
+    }
+
+    .clear-checked-btn:hover {
+      background: var(--color-background-danger);
+    }
+
     .tags-group {
       display: flex;
       flex-wrap: wrap;
@@ -543,7 +602,10 @@
 
     <!-- Shopping List -->
     <div id="shoppingListContainer" class="hidden">
-      <h2 id="listTitle"></h2>
+      <div class="list-header">
+        <h2 id="listTitle"></h2>
+        <button id="clearCheckedBtn" class="clear-checked-btn hidden" onclick="clearCheckedItems()"></button>
+      </div>
       <div id="shoppingList"></div>
     </div>
 
@@ -619,6 +681,7 @@
       document.getElementById('addSectionBtn').textContent       = t('sections.newBtn');
       document.getElementById('favoritesTitle').innerHTML        =
         `${t('favorites.title')} (<span id="favCountDetail">0</span>)`;
+      document.getElementById('clearCheckedBtn').textContent     = t('list.clearChecked');
     }
 
     // Re-apply theme if user switches system preference while the tab is open
@@ -767,6 +830,33 @@
       } catch (e) {
         setStatus(t('status.errorAddItem'), true);
         console.error(e);
+      }
+    }
+
+    async function toggleCheck(id) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+      const newVal = !item.checked;
+      try {
+        await sb(`items?id=eq.${id}`, {
+          method: 'PATCH',
+          prefer: 'return=minimal',
+          body: { checked: newVal }
+        });
+        item.checked = newVal;
+        updateUI();
+      } catch (e) {
+        setStatus(t('status.errorToggleCheck'), true);
+      }
+    }
+
+    async function clearCheckedItems() {
+      try {
+        await sb('items?checked=eq.true', { method: 'DELETE' });
+        items = items.filter(i => !i.checked);
+        updateUI();
+      } catch (e) {
+        setStatus(t('status.errorDeleteItem'), true);
       }
     }
 
@@ -961,6 +1051,10 @@
       container.classList.remove('hidden');
       list.innerHTML = '';
 
+      // Show/hide "Clear checked" button
+      const anyChecked = items.some(i => i.checked);
+      document.getElementById('clearCheckedBtn').classList.toggle('hidden', !anyChecked);
+
       sections.forEach(section => {
         const sectionItems = items.filter(item => item.section === section);
         if (sectionItems.length === 0) return;
@@ -970,7 +1064,8 @@
 
         const header = document.createElement('div');
         header.className = 'section-header';
-        header.innerHTML = `<h3>${section} (${sectionItems.length})</h3>`;
+        const uncheckedCount = sectionItems.filter(i => !i.checked).length;
+        header.innerHTML = `<h3>${section} (${uncheckedCount}/${sectionItems.length})</h3>`;
 
         const clearBtn = document.createElement('button');
         clearBtn.textContent = t('list.clearSection');
@@ -984,7 +1079,14 @@
           const row = document.createElement('div');
           row.className = 'item-row';
 
+          const checkBtn = document.createElement('button');
+          checkBtn.className = 'item-check' + (item.checked ? ' checked' : '');
+          checkBtn.textContent = item.checked ? '✓' : '';
+          checkBtn.title = item.checked ? 'Uncheck' : 'Check off';
+          checkBtn.onclick = () => toggleCheck(item.id);
+
           const nameSpan = document.createElement('span');
+          nameSpan.className = 'item-name' + (item.checked ? ' checked' : '');
           nameSpan.textContent = item.name;
 
           const actions = document.createElement('div');
@@ -1015,7 +1117,7 @@
           deleteBtn.onclick = () => deleteItem(item.id);
 
           actions.append(findLink, copyBtn, heartBtn, deleteBtn);
-          row.append(nameSpan, actions);
+          row.append(checkBtn, nameSpan, actions);
           itemsDiv.appendChild(row);
         });
 

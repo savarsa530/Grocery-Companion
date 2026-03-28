@@ -38,6 +38,7 @@ const STRINGS = {
     list: {
       title:        "Your shopping list",
       clearSection: "Clear section",
+      clearChecked: "Clear checked",
     },
 
     // Per-item actions
@@ -77,6 +78,7 @@ const STRINGS = {
       errorRemoveFavorite:"Failed to remove favorite.",
       errorAddSection:    "Failed to add section.",
       errorDeleteSection: "Failed to delete section.",
+      errorToggleCheck:   "Failed to update item.",
     },
 
   },
