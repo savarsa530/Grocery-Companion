@@ -609,6 +609,59 @@
       z-index: 998;
     }
 
+    /* ------------------------------------------------------------------ */
+    /* Encouragement toast                                                  */
+    /* ------------------------------------------------------------------ */
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(-16px) scale(0.95); }
+      to   { opacity: 1; transform: translateY(0)     scale(1); }
+    }
+
+    @keyframes toastOut {
+      from { opacity: 1; transform: translateY(0)     scale(1); }
+      to   { opacity: 0; transform: translateY(-10px) scale(0.95); }
+    }
+
+    #encourageToast {
+      position: fixed;
+      top: 1.25rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--color-background-success);
+      color: var(--color-text-success);
+      border: 0.5px solid var(--color-text-success);
+      border-radius: 99px;
+      padding: 0.5rem 1.25rem;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 997;
+      pointer-events: none;
+      white-space: nowrap;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    }
+
+    #encourageToast.in  { animation: toastIn  0.25s ease forwards; }
+    #encourageToast.out { animation: toastOut 0.3s  ease forwards; }
+
+    /* ------------------------------------------------------------------ */
+    /* Streak badge                                                         */
+    /* ------------------------------------------------------------------ */
+
+    .streak-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      margin-left: 10px;
+    }
+
+    .streak-badge.hot {
+      color: #e07b00;
+    }
+
     /* Store name label — hidden on mobile, shown on desktop */
     .store-label {
       display: inline;
@@ -762,7 +815,7 @@
     <div class="app-header">
       <div class="app-header-text">
         <h1 id="appName"></h1>
-        <p class="subtitle"><span id="appSubtitle"></span> <span id="itemCount">0</span> items, <span id="favCount">0</span> favorites.</p>
+        <p class="subtitle"><span id="appSubtitle"></span> <span id="itemCount">0</span> items, <span id="favCount">0</span> favorites.<span id="streakBadge" class="streak-badge hidden"></span></p>
       </div>
       <div id="themePicker" class="theme-picker"></div>
     </div>
@@ -821,6 +874,9 @@
 
     <!-- Confetti canvas -->
     <canvas id="confettiCanvas"></canvas>
+
+    <!-- Encouragement toast -->
+    <div id="encourageToast" style="display:none"></div>
 
     <!-- Sections Manager -->
     <div class="card">
@@ -1046,6 +1102,92 @@
       }
     }
 
+    // --- Encouragement messages ---
+
+    const ENCOURAGEMENTS = {
+      early: [
+        "Let's GOOO! 🚀", "First one down! 💪", "You started — that's everything.",
+        "Here we go! 🔥", "Off to the races! 🏁"
+      ],
+      middle: [
+        "Nice! 🔥", "Keep going! 💪", "You're on a roll!",
+        "Crushing it! ✨", "Look at you go 👀", "Smooth operator 😎",
+        "That's the spirit! 🙌", "One down!", "Making moves 🛒",
+        "Grocery legend in the making 🏆"
+      ],
+      late: [
+        "Almost there! 🏁", "SO close!", "Home stretch! 🎯",
+        "Don't stop now! ⚡", "Last few — you got this! 💥", "Finish line in sight! 👀"
+      ]
+    };
+
+    let toastTimer;
+
+    function showEncouragement() {
+      const total   = items.length;
+      const checked = items.filter(i => i.checked).length;
+      if (total === 0 || checked === total) return; // celebration handles the finish
+
+      const pct  = checked / total;
+      const pool = pct < 0.25 ? ENCOURAGEMENTS.early
+                 : pct < 0.75 ? ENCOURAGEMENTS.middle
+                 :               ENCOURAGEMENTS.late;
+      const msg  = pool[Math.floor(Math.random() * pool.length)];
+
+      const toast = document.getElementById('encourageToast');
+      clearTimeout(toastTimer);
+      toast.textContent = msg;
+      toast.style.display = 'block';
+      toast.className = 'in';
+
+      toastTimer = setTimeout(() => {
+        toast.className = 'out';
+        setTimeout(() => { toast.style.display = 'none'; toast.className = ''; }, 320);
+      }, 1600);
+    }
+
+    // --- Streak ---
+
+    function loadStreak() {
+      try {
+        return JSON.parse(localStorage.getItem('gc-streak')) || { count: 0, lastCompleted: null };
+      } catch { return { count: 0, lastCompleted: null }; }
+    }
+
+    function saveStreak(data) {
+      localStorage.setItem('gc-streak', JSON.stringify(data));
+    }
+
+    function updateStreak() {
+      const streak  = loadStreak();
+      const today   = new Date().toISOString().slice(0, 10);
+      const last    = streak.lastCompleted ? new Date(streak.lastCompleted) : null;
+      const now     = new Date(today);
+      const daysDiff = last ? (now - last) / (1000 * 60 * 60 * 24) : Infinity;
+
+      if (streak.lastCompleted === today) return; // already counted today
+
+      const newCount = (daysDiff <= 9) ? streak.count + 1 : 1; // 9-day grace window
+      saveStreak({ count: newCount, lastCompleted: today });
+      renderStreakBadge(newCount);
+    }
+
+    function renderStreakBadge(count) {
+      const badge = document.getElementById('streakBadge');
+      if (!count || count < 1) {
+        badge.classList.add('hidden');
+        return;
+      }
+      const isHot = count >= 3;
+      badge.className = 'streak-badge' + (isHot ? ' hot' : '');
+      badge.textContent = isHot ? `🔥 ${count} week streak` : `⚡ ${count} week streak`;
+    }
+
+    function initStreak() {
+      const { count } = loadStreak();
+      renderStreakBadge(count);
+    }
+
     // --- Celebration & progress ---
 
     const CELEBRATIONS = [
@@ -1124,6 +1266,7 @@
       document.getElementById('celebrationMessage').textContent = pick.message;
       document.getElementById('celebrationSub').textContent     = pick.sub;
       document.getElementById('celebration').classList.add('visible');
+      updateStreak();
       launchConfetti();
     }
 
@@ -1173,6 +1316,9 @@
         document.getElementById('clearCheckedBtn').classList.toggle('hidden', !anyChecked);
         // Update section counts without full re-render
         updateShoppingList();
+
+        // Encouragement on check (not uncheck)
+        if (newVal) showEncouragement();
 
         // 🎉 Check if everything is done
         if (items.length > 0 && items.every(i => i.checked)) {
@@ -1570,6 +1716,7 @@
     applyTheme();
     applyIdentity();
     renderThemePicker();
+    initStreak();
     loadData();
   </script>
 </body>
