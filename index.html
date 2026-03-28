@@ -357,55 +357,54 @@
 
     <!-- Add Item Section -->
     <div class="card">
-      <h2>Add to your list</h2>
+      <h2 id="addCardTitle"></h2>
       <div class="input-group">
         <input
           type="text"
           id="newItem"
-          placeholder="What do you need?"
           onkeypress="handleKeyPress(event)"
         />
         <select id="newSection"></select>
-        <button onclick="addItem()">Add item</button>
+        <button id="addItemBtn" onclick="addItem()"></button>
       </div>
 
       <div id="quickAddContainer" class="hidden quick-add">
-        <label class="quick-add-label">Quick add favorites</label>
+        <label id="quickAddLabel" class="quick-add-label"></label>
         <div id="quickAddButtons" class="quick-add-buttons"></div>
       </div>
     </div>
 
     <!-- Shopping List -->
     <div id="shoppingListContainer" class="hidden">
-      <h2>Your shopping list</h2>
+      <h2 id="listTitle"></h2>
       <div id="shoppingList"></div>
     </div>
 
     <!-- Sections Manager -->
     <div class="card">
-      <h2>Manage sections</h2>
+      <h2 id="sectionsTitle"></h2>
       <div id="sectionsContainer" class="tags-group"></div>
       <div id="addSectionForm" class="hidden inline-add">
         <input
           type="text"
           id="newSectionName"
-          placeholder="New section name"
           onkeypress="handleSectionKeyPress(event)"
         />
-        <button onclick="addNewSection()">Add</button>
-        <button onclick="cancelAddSection()">Cancel</button>
+        <button id="addSectionConfirmBtn" onclick="addNewSection()"></button>
+        <button id="addSectionCancelBtn" onclick="cancelAddSection()"></button>
       </div>
-      <button id="addSectionBtn" onclick="showAddSectionForm()">+ Add section</button>
+      <button id="addSectionBtn" onclick="showAddSectionForm()"></button>
     </div>
 
     <!-- Favorites Manager -->
     <div class="card">
-      <h2>Your favorites (<span id="favCountDetail">0</span>)</h2>
+      <h2 id="favoritesTitle"></h2>
       <div id="favoritesContainer"></div>
     </div>
   </div>
 
   <script src="config.js"></script>
+  <script src="strings.js"></script>
   <script>
     const SUPABASE_URL = 'https://lrmdawizqxfaoncddwnz.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWRhd2l6cXhmYW9uY2Rkd256Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMjI2MDYsImV4cCI6MjA4OTU5ODYwNn0.jlPZgYiGC71jZVWZg_ub0WxFO53ONF42PApk3AsUEUw';
@@ -439,6 +438,20 @@
       document.title = CONFIG.app.name;
       document.getElementById('appName').textContent = CONFIG.app.name;
       document.getElementById('appSubtitle').textContent = CONFIG.app.subtitle;
+
+      // Static UI labels from strings
+      document.getElementById('addCardTitle').textContent        = t('addCard.title');
+      document.getElementById('newItem').placeholder             = t('addCard.placeholder');
+      document.getElementById('addItemBtn').textContent          = t('addCard.addBtn');
+      document.getElementById('quickAddLabel').textContent       = t('quickAdd.label');
+      document.getElementById('listTitle').textContent           = t('list.title');
+      document.getElementById('sectionsTitle').textContent       = t('sections.title');
+      document.getElementById('newSectionName').placeholder      = t('sections.placeholder');
+      document.getElementById('addSectionConfirmBtn').textContent = t('sections.addBtn');
+      document.getElementById('addSectionCancelBtn').textContent = t('sections.cancelBtn');
+      document.getElementById('addSectionBtn').textContent       = t('sections.newBtn');
+      document.getElementById('favoritesTitle').innerHTML        =
+        `${t('favorites.title')} (<span id="favCountDetail">0</span>)`;
     }
 
     // Re-apply theme if user switches system preference while the tab is open
@@ -494,7 +507,7 @@
         items = itms;
         updateUI();
       } catch (e) {
-        setStatus('Could not connect to database. Check your connection.', true);
+        setStatus(t('status.noConnection'), true);
         console.error(e);
       }
     }
@@ -522,7 +535,7 @@
       if (!name) return;
 
       input.value = '';
-      setStatus('Categorizing...');
+      setStatus(t('status.categorizing'));
 
       const suggested = await categorizeItem(name);
       if (suggested && sections.includes(suggested)) {
@@ -536,10 +549,10 @@
           body: { name, section: sectionEl.value }
         });
         items.push(created);
-        setStatus(`Added to ${sectionEl.value}`);
+        setStatus(t('status.addedTo', { section: sectionEl.value }));
         updateUI();
       } catch (e) {
-        setStatus('Failed to add item.', true);
+        setStatus(t('status.errorAddItem'), true);
         console.error(e);
       }
     }
@@ -550,7 +563,7 @@
         items = items.filter(i => i.id !== id);
         updateUI();
       } catch (e) {
-        setStatus('Failed to delete item.', true);
+        setStatus(t('status.errorDeleteItem'), true);
       }
     }
 
@@ -560,7 +573,7 @@
         items = items.filter(i => i.section !== sectionName);
         updateUI();
       } catch (e) {
-        setStatus('Failed to clear section.', true);
+        setStatus(t('status.errorClearSection'), true);
       }
     }
 
@@ -571,7 +584,7 @@
       if (!item) return;
       // Avoid duplicates
       if (favorites.some(f => f.name.toLowerCase() === item.name.toLowerCase())) {
-        setStatus(`"${item.name}" is already in favorites.`);
+        setStatus(t('status.alreadyFavorite', { name: item.name }));
         return;
       }
       try {
@@ -583,7 +596,7 @@
         favorites.push(created);
         updateUI();
       } catch (e) {
-        setStatus('Failed to save favorite.', true);
+        setStatus(t('status.errorSaveFavorite'), true);
       }
     }
 
@@ -593,7 +606,7 @@
         favorites = favorites.filter(f => f.id !== id);
         updateUI();
       } catch (e) {
-        setStatus('Failed to remove favorite.', true);
+        setStatus(t('status.errorRemoveFavorite'), true);
       }
     }
 
@@ -609,7 +622,7 @@
         items.push(created);
         updateUI();
       } catch (e) {
-        setStatus('Failed to add item.', true);
+        setStatus(t('status.errorAddItem'), true);
       }
     }
 
@@ -623,7 +636,7 @@
         items = items.filter(i => i.section !== sectionName);
         updateUI();
       } catch (e) {
-        setStatus('Failed to delete section.', true);
+        setStatus(t('status.errorDeleteSection'), true);
       }
     }
 
@@ -644,7 +657,7 @@
         document.getElementById('addSectionForm').classList.add('hidden');
         document.getElementById('addSectionBtn').classList.remove('hidden');
       } catch (e) {
-        setStatus('Failed to add section.', true);
+        setStatus(t('status.errorAddSection'), true);
       }
     }
 
@@ -672,10 +685,10 @@
     function copyToClipboard(text, id) {
       navigator.clipboard.writeText(text).then(() => {
         const btn = document.getElementById(`copy-${id}`);
-        btn.textContent = 'Copied!';
+        btn.textContent = t('item.copied');
         btn.classList.add('copied');
         setTimeout(() => {
-          btn.textContent = 'Copy';
+          btn.textContent = t('item.copy');
           btn.classList.remove('copied');
         }, 2000);
       });
@@ -747,7 +760,7 @@
         header.innerHTML = `<h3>${section} (${sectionItems.length})</h3>`;
 
         const clearBtn = document.createElement('button');
-        clearBtn.textContent = 'Clear section';
+        clearBtn.textContent = t('list.clearSection');
         clearBtn.onclick = () => clearSection(section);
         header.appendChild(clearBtn);
 
@@ -769,23 +782,23 @@
           findLink.target = '_blank';
           findLink.rel = 'noopener noreferrer';
           findLink.className = 'action-btn find';
-          findLink.textContent = `Find at ${resolveStore().name}`;
+          findLink.textContent = t('item.findAt', { store: resolveStore().name });
 
           const copyBtn = document.createElement('button');
           copyBtn.id = `copy-${item.id}`;
           copyBtn.className = 'action-btn copy';
-          copyBtn.textContent = 'Copy';
+          copyBtn.textContent = t('item.copy');
           copyBtn.onclick = () => copyToClipboard(item.name, item.id);
 
           const heartBtn = document.createElement('button');
           heartBtn.className = 'action-btn heart';
-          heartBtn.title = 'Save to favorites';
+          heartBtn.title = t('item.favorite');
           heartBtn.textContent = '♡';
           heartBtn.onclick = () => addToFavorites(item.id);
 
           const deleteBtn = document.createElement('button');
           deleteBtn.className = 'action-btn delete';
-          deleteBtn.textContent = '✕';
+          deleteBtn.textContent = t('item.delete');
           deleteBtn.onclick = () => deleteItem(item.id);
 
           actions.append(findLink, copyBtn, heartBtn, deleteBtn);
@@ -818,7 +831,7 @@
     function updateFavoritesUI() {
       const container = document.getElementById('favoritesContainer');
       if (favorites.length === 0) {
-        container.innerHTML = '<p class="empty-state">Heart items you shop for regularly, and they\'ll appear above as quick-add buttons.</p>';
+        container.innerHTML = `<p class="empty-state">${t('favorites.emptyState')}</p>`;
         return;
       }
       container.innerHTML = '';

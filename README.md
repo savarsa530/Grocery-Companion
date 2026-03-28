@@ -64,6 +64,15 @@ customTheme: {
 defaultSections: ["Produce", "Bakery", "Deli", "Drinks", "Other"],
 ```
 
+**Add a new language (future):**
+
+All UI text lives in `strings.js`. To translate:
+1. Duplicate the `en` block with a new locale key (e.g. `es`)
+2. Translate every string value
+3. Set `CONFIG.locale = "es"` in `config.js`
+
+No changes to `index.html` required.
+
 ## Stack
 
 - Vanilla HTML / CSS / JavaScript (single file, no build step)
