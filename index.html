@@ -439,6 +439,7 @@
   <script>
     const SUPABASE_URL = 'https://lrmdawizqxfaoncddwnz.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWRhd2l6cXhmYW9uY2Rkd256Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMjI2MDYsImV4cCI6MjA4OTU5ODYwNn0.jlPZgYiGC71jZVWZg_ub0WxFO53ONF42PApk3AsUEUw';
+    const CATEGORIZE_URL = `${SUPABASE_URL}/functions/v1/categorize-item`;
 
     let items = [];
     let favorites = [];
@@ -497,6 +498,20 @@
 
     // --- Items ---
 
+    async function categorizeItem(name) {
+      try {
+        const res = await fetch(CATEGORIZE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+          body: JSON.stringify({ item: name, sections })
+        });
+        const data = await res.json();
+        return data.section || null;
+      } catch (e) {
+        return null;
+      }
+    }
+
     async function addItem() {
       const input = document.getElementById('newItem');
       const sectionEl = document.getElementById('newSection');
@@ -504,6 +519,13 @@
       if (!name) return;
 
       input.value = '';
+      setStatus('Categorizing...');
+
+      const suggested = await categorizeItem(name);
+      if (suggested && sections.includes(suggested)) {
+        sectionEl.value = suggested;
+      }
+
       try {
         const [created] = await sb('items?select=*', {
           method: 'POST',
@@ -511,6 +533,7 @@
           body: { name, section: sectionEl.value }
         });
         items.push(created);
+        setStatus(`Added to ${sectionEl.value}`);
         updateUI();
       } catch (e) {
         setStatus('Failed to add item.', true);
