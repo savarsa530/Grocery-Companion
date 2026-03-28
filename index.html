@@ -615,6 +615,56 @@
     }
 
     /* ------------------------------------------------------------------ */
+    /* Focus mode                                                           */
+    /* ------------------------------------------------------------------ */
+
+    .focus-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--color-background-info);
+      color: var(--color-text-info);
+      border: 0.5px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-md);
+      padding: 0.6rem 1rem;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 1rem;
+    }
+
+    .focus-banner button {
+      font-size: 12px;
+      padding: 3px 10px;
+      border-color: var(--color-text-info);
+      color: var(--color-text-info);
+    }
+
+    .focus-banner button:hover {
+      background: var(--color-background-primary);
+    }
+
+    .section-focus-btn {
+      font-size: 11px;
+      padding: 2px 8px;
+      border: 0.5px solid var(--color-border-tertiary);
+      color: var(--color-text-secondary);
+      margin-right: 4px;
+    }
+
+    .section-focus-btn:hover {
+      color: var(--color-text-info);
+      border-color: var(--color-text-info);
+      background: var(--color-background-info);
+    }
+
+    /* Item emoji */
+    .item-emoji {
+      margin-right: 6px;
+      font-size: 17px;
+      flex-shrink: 0;
+    }
+
+    /* ------------------------------------------------------------------ */
     /* Mobile layout (≤ 520px)                                             */
     /* ------------------------------------------------------------------ */
     @media (max-width: 520px) {
@@ -751,6 +801,10 @@
         <div class="progress-track">
           <div id="progressFill" class="progress-fill"></div>
         </div>
+      </div>
+      <div id="focusBanner" class="focus-banner hidden">
+        <span id="focusBannerText"></span>
+        <button onclick="exitFocus()">Exit focus</button>
       </div>
       <div id="shoppingList"></div>
     </div>
@@ -957,9 +1011,9 @@
           body: JSON.stringify({ item: name, sections })
         });
         const data = await res.json();
-        return data.section || null;
+        return { section: data.section || null, emoji: data.emoji || '' };
       } catch (e) {
-        return null;
+        return { section: null, emoji: '' };
       }
     }
 
@@ -972,7 +1026,7 @@
       input.value = '';
       setStatus(t('status.categorizing'));
 
-      const suggested = await categorizeItem(name);
+      const { section: suggested, emoji } = await categorizeItem(name);
       if (suggested && sections.includes(suggested)) {
         sectionEl.value = suggested;
       }
@@ -981,7 +1035,7 @@
         const [created] = await sb('items?select=*', {
           method: 'POST',
           prefer: 'return=representation',
-          body: { name, section: sectionEl.value }
+          body: { name, section: sectionEl.value, emoji }
         });
         items.push(created);
         setStatus(t('status.addedTo', { section: sectionEl.value }));
@@ -1209,6 +1263,20 @@
       }
     }
 
+    // --- Focus mode ---
+
+    let focusSection = null;
+
+    function enterFocus(sectionName) {
+      focusSection = sectionName;
+      updateShoppingList();
+    }
+
+    function exitFocus() {
+      focusSection = null;
+      updateShoppingList();
+    }
+
     // --- Sections ---
 
     async function deleteSection(sectionName) {
@@ -1336,7 +1404,18 @@
       const anyChecked = items.some(i => i.checked);
       document.getElementById('clearCheckedBtn').classList.toggle('hidden', !anyChecked);
 
-      sections.forEach(section => {
+      // Focus banner
+      const banner = document.getElementById('focusBanner');
+      if (focusSection) {
+        banner.classList.remove('hidden');
+        document.getElementById('focusBannerText').textContent = `📍 Focusing on: ${focusSection}`;
+      } else {
+        banner.classList.add('hidden');
+      }
+
+      const visibleSections = focusSection ? [focusSection] : sections;
+
+      visibleSections.forEach(section => {
         const sectionItems = items.filter(item => item.section === section);
         if (sectionItems.length === 0) return;
 
@@ -1348,10 +1427,24 @@
         const uncheckedCount = sectionItems.filter(i => !i.checked).length;
         header.innerHTML = `<h3>${section} (${uncheckedCount}/${sectionItems.length})</h3>`;
 
+        const headerBtns = document.createElement('div');
+        headerBtns.style.display = 'flex';
+        headerBtns.style.gap = '6px';
+        headerBtns.style.alignItems = 'center';
+
+        if (!focusSection) {
+          const focusBtn = document.createElement('button');
+          focusBtn.className = 'section-focus-btn';
+          focusBtn.textContent = 'Focus';
+          focusBtn.onclick = () => enterFocus(section);
+          headerBtns.appendChild(focusBtn);
+        }
+
         const clearBtn = document.createElement('button');
         clearBtn.textContent = t('list.clearSection');
         clearBtn.onclick = () => clearSection(section);
-        header.appendChild(clearBtn);
+        headerBtns.appendChild(clearBtn);
+        header.appendChild(headerBtns);
 
         const itemsDiv = document.createElement('div');
         itemsDiv.className = 'section-items';
@@ -1371,7 +1464,9 @@
           const nameSpan = document.createElement('span');
           nameSpan.className = 'item-name' + (item.checked ? ' checked' : '');
           nameSpan.id = `name-${item.id}`;
-          nameSpan.textContent = item.name;
+          nameSpan.innerHTML = item.emoji
+            ? `<span class="item-emoji">${item.emoji}</span>${item.name}`
+            : item.name;
 
           const actions = document.createElement('div');
           actions.className = 'item-actions';
