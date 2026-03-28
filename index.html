@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sage & Steph Grocery Companion</title>
+  <title>Grocery Companion</title>
   <style>
     * {
       margin: 0;
@@ -12,41 +12,10 @@
     }
 
     :root {
-      --color-background-primary: #ffffff;
-      --color-background-secondary: #f8f7f5;
-      --color-background-tertiary: #f0ede8;
-      --color-background-info: #e6f1fb;
-      --color-background-success: #eaf3de;
-      --color-background-danger: #fcebeb;
-      --color-text-primary: #2c2c2a;
-      --color-text-secondary: #888780;
-      --color-text-tertiary: #b4b2a9;
-      --color-text-info: #185fa5;
-      --color-text-success: #3b6d11;
-      --color-text-danger: #a32d2d;
-      --color-border-tertiary: rgba(0, 0, 0, 0.15);
-      --color-border-secondary: rgba(0, 0, 0, 0.3);
-      --color-border-primary: rgba(0, 0, 0, 0.4);
+      /* Colors are applied from config.js via applyTheme() */
       --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
       --border-radius-md: 8px;
       --border-radius-lg: 12px;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --color-background-primary: #1a1a1a;
-        --color-background-secondary: #262623;
-        --color-background-tertiary: #323230;
-        --color-background-info: #042c53;
-        --color-background-success: #173404;
-        --color-background-danger: #501313;
-        --color-text-primary: #e8e8e5;
-        --color-text-secondary: #9d9d9a;
-        --color-text-tertiary: #6b6b68;
-        --color-text-info: #b5d4f4;
-        --color-text-success: #97c459;
-        --color-text-danger: #f09595;
-      }
     }
 
     body {
@@ -382,8 +351,8 @@
 </head>
 <body>
   <div class="container">
-    <h1>Sage & Steph Grocery Companion</h1>
-    <p class="subtitle">Shopping made intentional. <span id="itemCount">0</span> items, <span id="favCount">0</span> favorites.</p>
+    <h1 id="appName"></h1>
+    <p class="subtitle"><span id="appSubtitle"></span> <span id="itemCount">0</span> items, <span id="favCount">0</span> favorites.</p>
     <div id="statusBar" class="status-bar hidden"></div>
 
     <!-- Add Item Section -->
@@ -436,10 +405,43 @@
     </div>
   </div>
 
+  <script src="config.js"></script>
   <script>
     const SUPABASE_URL = 'https://lrmdawizqxfaoncddwnz.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWRhd2l6cXhmYW9uY2Rkd256Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMjI2MDYsImV4cCI6MjA4OTU5ODYwNn0.jlPZgYiGC71jZVWZg_ub0WxFO53ONF42PApk3AsUEUw';
     const CATEGORIZE_URL = `${SUPABASE_URL}/functions/v1/categorize-item`;
+
+    // --- Config bootstrap ---
+
+    function applyTheme() {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const t = prefersDark ? CONFIG.theme.dark : CONFIG.theme.light;
+      const root = document.documentElement;
+      root.style.setProperty('--color-background-primary',   t.backgroundPrimary);
+      root.style.setProperty('--color-background-secondary', t.backgroundSecondary);
+      root.style.setProperty('--color-background-tertiary',  t.backgroundTertiary);
+      root.style.setProperty('--color-background-info',      t.backgroundInfo);
+      root.style.setProperty('--color-background-success',   t.backgroundSuccess);
+      root.style.setProperty('--color-background-danger',    t.backgroundDanger);
+      root.style.setProperty('--color-text-primary',         t.textPrimary);
+      root.style.setProperty('--color-text-secondary',       t.textSecondary);
+      root.style.setProperty('--color-text-tertiary',        t.textTertiary);
+      root.style.setProperty('--color-text-info',            t.textInfo);
+      root.style.setProperty('--color-text-success',         t.textSuccess);
+      root.style.setProperty('--color-text-danger',          t.textDanger);
+      root.style.setProperty('--color-border-tertiary',      t.borderTertiary);
+      root.style.setProperty('--color-border-secondary',     t.borderSecondary);
+      root.style.setProperty('--color-border-primary',       t.borderPrimary);
+    }
+
+    function applyIdentity() {
+      document.title = CONFIG.app.name;
+      document.getElementById('appName').textContent = CONFIG.app.name;
+      document.getElementById('appSubtitle').textContent = CONFIG.app.subtitle;
+    }
+
+    // Re-apply theme if user switches system preference while the tab is open
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
 
     let items = [];
     let favorites = [];
@@ -658,8 +660,8 @@
 
     // --- Utilities ---
 
-    function generateWalmartLink(itemName) {
-      return `https://www.walmart.com/search?q=${encodeURIComponent(itemName)}`;
+    function generateStoreLink(itemName) {
+      return CONFIG.store.searchUrl.replace('{query}', encodeURIComponent(itemName));
     }
 
     function copyToClipboard(text, id) {
@@ -758,11 +760,11 @@
           actions.className = 'item-actions';
 
           const findLink = document.createElement('a');
-          findLink.href = generateWalmartLink(item.name);
+          findLink.href = generateStoreLink(item.name);
           findLink.target = '_blank';
           findLink.rel = 'noopener noreferrer';
           findLink.className = 'action-btn find';
-          findLink.textContent = 'Find';
+          findLink.textContent = `Find at ${CONFIG.store.name}`;
 
           const copyBtn = document.createElement('button');
           copyBtn.id = `copy-${item.id}`;
@@ -852,6 +854,8 @@
     }
 
     // Initialize
+    applyTheme();
+    applyIdentity();
     loadData();
   </script>
 </body>
