@@ -472,6 +472,143 @@
       border-radius: 50%;
     }
 
+    /* ------------------------------------------------------------------ */
+    /* Check-off animation                                                  */
+    /* ------------------------------------------------------------------ */
+
+    @keyframes checkBounce {
+      0%   { transform: scale(1); }
+      30%  { transform: scale(1.5); }
+      60%  { transform: scale(0.9); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes rowFlash {
+      0%   { background: transparent; }
+      30%  { background: var(--color-background-success); }
+      100% { background: transparent; }
+    }
+
+    .item-check.bouncing {
+      animation: checkBounce 0.35s ease forwards;
+    }
+
+    .item-row.flashing {
+      animation: rowFlash 0.5s ease forwards;
+      border-radius: var(--border-radius-md);
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Progress bar                                                         */
+    /* ------------------------------------------------------------------ */
+
+    .progress-wrap {
+      margin-bottom: 1.25rem;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .progress-label .progress-pct {
+      font-weight: 500;
+      color: var(--color-text-success);
+    }
+
+    .progress-track {
+      height: 8px;
+      background: var(--color-background-tertiary);
+      border-radius: 99px;
+      overflow: hidden;
+      border: 0.5px solid var(--color-border-tertiary);
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--color-text-success);
+      border-radius: 99px;
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      width: 0%;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Celebration overlay                                                  */
+    /* ------------------------------------------------------------------ */
+
+    .celebration {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(4px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    .celebration.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .celebration-card {
+      background: var(--color-background-primary);
+      border: 0.5px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-lg);
+      padding: 2.5rem 2rem;
+      text-align: center;
+      max-width: 320px;
+      width: 90%;
+      transform: scale(0.85);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .celebration.visible .celebration-card {
+      transform: scale(1);
+    }
+
+    .celebration-emoji {
+      font-size: 56px;
+      margin-bottom: 0.75rem;
+      display: block;
+    }
+
+    .celebration-message {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--color-text-primary);
+    }
+
+    .celebration-sub {
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      margin-bottom: 1.5rem;
+    }
+
+    .celebration-btn {
+      width: 100%;
+      padding: 0.75rem;
+      font-size: 15px;
+      background: var(--color-background-success);
+      color: var(--color-text-success);
+      border-color: var(--color-text-success);
+    }
+
+    #confettiCanvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 998;
+    }
+
     /* Store name label — hidden on mobile, shown on desktop */
     .store-label {
       display: inline;
@@ -606,8 +743,30 @@
         <h2 id="listTitle"></h2>
         <button id="clearCheckedBtn" class="clear-checked-btn hidden" onclick="clearCheckedItems()"></button>
       </div>
+      <div class="progress-wrap">
+        <div class="progress-label">
+          <span id="progressText"></span>
+          <span id="progressPct" class="progress-pct"></span>
+        </div>
+        <div class="progress-track">
+          <div id="progressFill" class="progress-fill"></div>
+        </div>
+      </div>
       <div id="shoppingList"></div>
     </div>
+
+    <!-- Celebration overlay -->
+    <div id="celebration" class="celebration" onclick="dismissCelebration()">
+      <div class="celebration-card" onclick="event.stopPropagation()">
+        <span id="celebrationEmoji" class="celebration-emoji"></span>
+        <div id="celebrationMessage" class="celebration-message"></div>
+        <div id="celebrationSub" class="celebration-sub"></div>
+        <button class="celebration-btn" onclick="dismissCelebration()">Let's go again 🛒</button>
+      </div>
+    </div>
+
+    <!-- Confetti canvas -->
+    <canvas id="confettiCanvas"></canvas>
 
     <!-- Sections Manager -->
     <div class="card">
@@ -833,6 +992,94 @@
       }
     }
 
+    // --- Celebration & progress ---
+
+    const CELEBRATIONS = [
+      { emoji: '🏆', message: 'LIST CONQUERED!',           sub: 'You absolute legend.' },
+      { emoji: '🎉', message: 'YOU DID THE THING!',        sub: 'Future you is grateful.' },
+      { emoji: '🔥', message: "That's how it's done!",     sub: 'Grocery boss mode: activated.' },
+      { emoji: '✅', message: 'CLEAN SWEEP!',              sub: 'Every. Single. Item.' },
+      { emoji: '💪', message: "You're basically a pro.",   sub: 'Certified grocery champion.' },
+      { emoji: '🚀', message: "LET'S GOOO!",               sub: 'Nothing could stop you.' },
+      { emoji: '✨', message: 'Nailed it.',                 sub: 'Go treat yourself. You earned it.' },
+    ];
+
+    function updateProgressBar() {
+      const total   = items.length;
+      const checked = items.filter(i => i.checked).length;
+      if (total === 0) return;
+
+      const pct = Math.round((checked / total) * 100);
+      document.getElementById('progressFill').style.width = pct + '%';
+      document.getElementById('progressText').textContent = `${checked} of ${total} items`;
+      document.getElementById('progressPct').textContent  = pct + '%';
+    }
+
+    let confettiFrame;
+
+    function launchConfetti() {
+      const canvas = document.getElementById('confettiCanvas');
+      const ctx    = canvas.getContext('2d');
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const colors  = ['#ff6b6b','#feca57','#48dbfb','#ff9ff3','#54a0ff','#5f27cd','#00d2d3','#1dd1a1'];
+      const pieces  = Array.from({ length: 90 }, () => ({
+        x:     Math.random() * canvas.width,
+        y:     Math.random() * canvas.height - canvas.height,
+        w:     Math.random() * 10 + 5,
+        h:     Math.random() * 6  + 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        vx:    (Math.random() - 0.5) * 3,
+        vy:    Math.random() * 3 + 2,
+        angle: Math.random() * 360,
+        spin:  (Math.random() - 0.5) * 7,
+      }));
+
+      let elapsed = 0;
+      cancelAnimationFrame(confettiFrame);
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        pieces.forEach(p => {
+          ctx.save();
+          ctx.translate(p.x + p.w / 2, p.y + p.h / 2);
+          ctx.rotate(p.angle * Math.PI / 180);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+          ctx.restore();
+          p.x     += p.vx;
+          p.y     += p.vy;
+          p.vy    += 0.07;
+          p.angle += p.spin;
+        });
+        elapsed++;
+        if (elapsed < 220) {
+          confettiFrame = requestAnimationFrame(draw);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+      }
+
+      draw();
+    }
+
+    function showCelebration() {
+      const pick = CELEBRATIONS[Math.floor(Math.random() * CELEBRATIONS.length)];
+      document.getElementById('celebrationEmoji').textContent   = pick.emoji;
+      document.getElementById('celebrationMessage').textContent = pick.message;
+      document.getElementById('celebrationSub').textContent     = pick.sub;
+      document.getElementById('celebration').classList.add('visible');
+      launchConfetti();
+    }
+
+    function dismissCelebration() {
+      document.getElementById('celebration').classList.remove('visible');
+      cancelAnimationFrame(confettiFrame);
+      const canvas = document.getElementById('confettiCanvas');
+      canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    }
+
     async function toggleCheck(id) {
       const item = items.find(i => i.id === id);
       if (!item) return;
@@ -844,7 +1091,40 @@
           body: { checked: newVal }
         });
         item.checked = newVal;
-        updateUI();
+
+        // Animate the row immediately without full re-render
+        const checkEl = document.getElementById(`check-${id}`);
+        const rowEl   = document.getElementById(`row-${id}`);
+        const nameEl  = document.getElementById(`name-${id}`);
+
+        if (checkEl) {
+          checkEl.classList.toggle('checked', newVal);
+          checkEl.textContent = newVal ? '✓' : '';
+          checkEl.classList.remove('bouncing');
+          void checkEl.offsetWidth; // force reflow to restart animation
+          checkEl.classList.add('bouncing');
+        }
+        if (rowEl && newVal)  {
+          rowEl.classList.remove('flashing');
+          void rowEl.offsetWidth;
+          rowEl.classList.add('flashing');
+        }
+        if (nameEl) {
+          nameEl.classList.toggle('checked', newVal);
+        }
+
+        updateProgressBar();
+        // Show clear-checked button
+        const anyChecked = items.some(i => i.checked);
+        document.getElementById('clearCheckedBtn').classList.toggle('hidden', !anyChecked);
+        // Update section counts without full re-render
+        updateShoppingList();
+
+        // 🎉 Check if everything is done
+        if (items.length > 0 && items.every(i => i.checked)) {
+          setTimeout(showCelebration, 400);
+        }
+
       } catch (e) {
         setStatus(t('status.errorToggleCheck'), true);
       }
@@ -1011,6 +1291,7 @@
       updateCounts();
       updateSectionSelect();
       updateShoppingList();
+      updateProgressBar();
       updateSectionsManager();
       updateFavoritesUI();
       updateQuickAdd();
@@ -1078,15 +1359,18 @@
         sectionItems.forEach(item => {
           const row = document.createElement('div');
           row.className = 'item-row';
+          row.id = `row-${item.id}`;
 
           const checkBtn = document.createElement('button');
           checkBtn.className = 'item-check' + (item.checked ? ' checked' : '');
+          checkBtn.id = `check-${item.id}`;
           checkBtn.textContent = item.checked ? '✓' : '';
           checkBtn.title = item.checked ? 'Uncheck' : 'Check off';
           checkBtn.onclick = () => toggleCheck(item.id);
 
           const nameSpan = document.createElement('span');
           nameSpan.className = 'item-name' + (item.checked ? ' checked' : '');
+          nameSpan.id = `name-${item.id}`;
           nameSpan.textContent = item.name;
 
           const actions = document.createElement('div');
