@@ -352,6 +352,67 @@
       color: var(--color-text-danger);
     }
 
+    /* ------------------------------------------------------------------ */
+    /* Theme picker                                                         */
+    /* ------------------------------------------------------------------ */
+
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 2rem;
+      gap: 1rem;
+    }
+
+    .app-header-text {
+      flex: 1;
+    }
+
+    .app-header-text h1 {
+      margin-bottom: 0.25rem;
+    }
+
+    .app-header-text .subtitle {
+      margin-bottom: 0;
+    }
+
+    .theme-picker {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding-top: 4px;
+      flex-shrink: 0;
+    }
+
+    .theme-swatch {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      padding: 0;
+      transition: transform 0.15s, border-color 0.15s;
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .theme-swatch:hover {
+      transform: scale(1.15);
+      background: none;
+    }
+
+    .theme-swatch.active {
+      border-color: var(--color-text-primary);
+      transform: scale(1.1);
+    }
+
+    .theme-swatch-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+    }
+
     /* Store name label — hidden on mobile, shown on desktop */
     .store-label {
       display: inline;
@@ -441,13 +502,24 @@
         font-size: 14px;
       }
 
+      /* Larger swatches for touch */
+      .theme-swatch {
+        width: 34px;
+        height: 34px;
+      }
+
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1 id="appName"></h1>
-    <p class="subtitle"><span id="appSubtitle"></span> <span id="itemCount">0</span> items, <span id="favCount">0</span> favorites.</p>
+    <div class="app-header">
+      <div class="app-header-text">
+        <h1 id="appName"></h1>
+        <p class="subtitle"><span id="appSubtitle"></span> <span id="itemCount">0</span> items, <span id="favCount">0</span> favorites.</p>
+      </div>
+      <div id="themePicker" class="theme-picker"></div>
+    </div>
     <div id="statusBar" class="status-bar hidden"></div>
 
     <!-- Add Item Section -->
@@ -550,7 +622,53 @@
     }
 
     // Re-apply theme if user switches system preference while the tab is open
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      applyTheme();
+      renderThemePicker();
+    });
+
+    // Swatch preview colors per theme (always light variant for consistency)
+    const THEME_PREVIEWS = {
+      sage:   { bg: '#f0ede8', accent: '#185fa5' },
+      ocean:  { bg: '#e4eff9', accent: '#0059a8' },
+      berry:  { bg: '#ede8f8', accent: '#5a20c0' },
+      forest: { bg: '#e6efe4', accent: '#2a6018' },
+    };
+
+    function setTheme(key) {
+      CONFIG.activeTheme = key;
+      localStorage.setItem('gc-theme', key);
+      applyTheme();
+      renderThemePicker();
+    }
+
+    function loadSavedTheme() {
+      const saved = localStorage.getItem('gc-theme');
+      if (saved && THEMES[saved]) {
+        CONFIG.activeTheme = saved;
+      }
+    }
+
+    function renderThemePicker() {
+      const picker = document.getElementById('themePicker');
+      picker.innerHTML = '';
+      Object.keys(THEMES).forEach(key => {
+        const preview = THEME_PREVIEWS[key];
+        const btn = document.createElement('button');
+        btn.className = 'theme-swatch' + (CONFIG.activeTheme === key ? ' active' : '');
+        btn.title = key.charAt(0).toUpperCase() + key.slice(1);
+        btn.setAttribute('aria-label', `${btn.title} theme`);
+        btn.onclick = () => setTheme(key);
+
+        const inner = document.createElement('div');
+        inner.className = 'theme-swatch-inner';
+        inner.style.background =
+          `linear-gradient(135deg, ${preview.bg} 50%, ${preview.accent} 50%)`;
+
+        btn.appendChild(inner);
+        picker.appendChild(btn);
+      });
+    }
 
     let items = [];
     let favorites = [];
@@ -967,8 +1085,10 @@
     }
 
     // Initialize
+    loadSavedTheme();
     applyTheme();
     applyIdentity();
+    renderThemePicker();
     loadData();
   </script>
 </body>
