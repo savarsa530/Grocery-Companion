@@ -19,6 +19,22 @@ A personal grocery list web app — shopping made intentional.
 | Supabase Database | `db.lrmdawizqxfaoncddwnz.supabase.co` |
 | GitHub Repo | https://github.com/savarsa530/Grocery-Companion |
 
+## Forking & Customization
+
+All personalization lives in `config.js` — it's the only file you need to edit.
+
+**Change the store:**
+```js
+store: {
+  name: "Target",
+  searchUrl: "https://www.target.com/s?searchTerm={query}",
+}
+```
+
+Use `{query}` as the placeholder for the search term. Works with any store that has a search URL.
+
+**Change the app name, color theme, or default sections** — all in the same file.
+
 ## Stack
 
 - Vanilla HTML / CSS / JavaScript (single file, no build step)
