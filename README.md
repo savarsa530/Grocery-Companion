@@ -33,12 +33,17 @@ app: {
 
 **Change the store:**
 ```js
-store: {
-  name: "Target",
-  searchUrl: "https://www.target.com/s?searchTerm={query}",
+activeStore: "target",  // "walmart" | "target" | "kroger" | "instacart" | "amazon_fresh" | "whole_foods" | "costco"
+```
+
+Or use any store not in the list:
+```js
+customStore: {
+  name: "My Local Market",
+  searchUrl: "https://mylocalmarket.com/search?q={query}",
 }
 ```
-Use `{query}` as the placeholder for the search term. Works with any store that has a search URL.
+Use `{query}` as the placeholder for the search term.
 
 **Change the theme:**
 ```js

@@ -6,6 +6,46 @@
  */
 
 // ---------------------------------------------------------------------------
+// Built-in store presets
+// Each entry has a name (shown on the "Find" button) and a searchUrl.
+// Use {query} as the placeholder for the encoded search term.
+// To use one, set CONFIG.activeStore to its key.
+// ---------------------------------------------------------------------------
+
+const STORES = {
+
+  walmart: {
+    name: "Walmart",
+    searchUrl: "https://www.walmart.com/search?q={query}",
+  },
+  target: {
+    name: "Target",
+    searchUrl: "https://www.target.com/s?searchTerm={query}",
+  },
+  kroger: {
+    name: "Kroger",
+    searchUrl: "https://www.kroger.com/search?query={query}",
+  },
+  instacart: {
+    name: "Instacart",
+    searchUrl: "https://www.instacart.com/store/s?k={query}",
+  },
+  amazon_fresh: {
+    name: "Amazon Fresh",
+    searchUrl: "https://www.amazon.com/s?i=amazonfresh&k={query}",
+  },
+  whole_foods: {
+    name: "Whole Foods",
+    searchUrl: "https://www.amazon.com/s?i=wholefoods&k={query}",
+  },
+  costco: {
+    name: "Costco",
+    searchUrl: "https://www.costco.com/CatalogSearch?keyword={query}",
+  },
+
+};
+
+// ---------------------------------------------------------------------------
 // Built-in theme presets
 // Each preset has a light and dark variant that auto-switch with the OS.
 // To use one, set CONFIG.activeTheme to its key.
@@ -177,12 +217,17 @@ const CONFIG = {
   },
 
   // --- Store ---
-  // The store used for "Find" links on each item.
-  // searchUrl: use {query} as the placeholder for the search term.
-  store: {
-    name: "Walmart",
-    searchUrl: "https://www.walmart.com/search?q={query}",
-  },
+  // Pick a built-in store preset: "walmart" | "target" | "kroger" |
+  //   "instacart" | "amazon_fresh" | "whole_foods" | "costco"
+  activeStore: "walmart",
+
+  // To use a store not in the list, uncomment and fill in customStore.
+  // This overrides activeStore entirely.
+  //
+  // customStore: {
+  //   name: "My Local Market",
+  //   searchUrl: "https://mylocalmarket.com/search?q={query}",
+  // },
 
   // --- Default Sections ---
   // These are created in the database on first load if no sections exist yet.

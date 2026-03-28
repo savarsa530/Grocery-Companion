@@ -661,8 +661,12 @@
 
     // --- Utilities ---
 
+    function resolveStore() {
+      return CONFIG.customStore || STORES[CONFIG.activeStore] || STORES.walmart;
+    }
+
     function generateStoreLink(itemName) {
-      return CONFIG.store.searchUrl.replace('{query}', encodeURIComponent(itemName));
+      return resolveStore().searchUrl.replace('{query}', encodeURIComponent(itemName));
     }
 
     function copyToClipboard(text, id) {
@@ -765,7 +769,7 @@
           findLink.target = '_blank';
           findLink.rel = 'noopener noreferrer';
           findLink.className = 'action-btn find';
-          findLink.textContent = `Find at ${CONFIG.store.name}`;
+          findLink.textContent = `Find at ${resolveStore().name}`;
 
           const copyBtn = document.createElement('button');
           copyBtn.id = `copy-${item.id}`;
