@@ -713,6 +713,16 @@
       background: var(--color-background-info);
     }
 
+    /* Item note (recipe measurement or manual annotation) */
+    .item-note {
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+      margin-left: 5px;
+      font-style: italic;
+    }
+
+    .item-name.checked .item-note { opacity: 0.6; }
+
     /* Item emoji */
     .item-emoji {
       margin-right: 6px;
@@ -1971,8 +1981,9 @@
         sectionItems.forEach(i => {
           const prefix = i.emoji ? `${i.emoji} ` : '- ';
           const qty = i.quantity && i.quantity > 1 ? ` ×${i.quantity}` : '';
+          const note = i.note ? ` (${i.note})` : '';
           const checked = i.checked ? ' ✓' : '';
-          lines.push(`  ${prefix}${i.name}${qty}${checked}`);
+          lines.push(`  ${prefix}${i.name}${qty}${note}${checked}`);
         });
         lines.push('');
       });
@@ -2036,7 +2047,7 @@
           const result = await sb('items?select=*', {
             method: 'POST',
             prefer: 'return=representation',
-            body: { name: parsed.name, section: sec, emoji: parsed.emoji || '', quantity: parsed.quantity || 1, position },
+            body: { name: parsed.name, section: sec, emoji: parsed.emoji || '', quantity: parsed.quantity || 1, note: parsed.note || '', position },
           });
           const created = Array.isArray(result) ? result[0] : null;
           if (created) items.push(created);
@@ -2072,8 +2083,8 @@
     async function confirmSaveTemplate() {
       const name = document.getElementById('templateNameInput').value.trim();
       if (!name) return;
-      const templateItems = items.map(({ name: n, section, emoji, quantity }) => ({
-        name: n, section, emoji: emoji || '', quantity: quantity || 1,
+      const templateItems = items.map(({ name: n, section, emoji, quantity, note }) => ({
+        name: n, section, emoji: emoji || '', quantity: quantity || 1, note: note || '',
       }));
       try {
         const result = await sb('templates?select=*', {
@@ -2102,7 +2113,7 @@
           const result = await sb('items?select=*', {
             method: 'POST',
             prefer: 'return=representation',
-            body: { name: ti.name, section: sec, emoji: ti.emoji || '', quantity: ti.quantity || 1, position },
+            body: { name: ti.name, section: sec, emoji: ti.emoji || '', quantity: ti.quantity || 1, note: ti.note || '', position },
           });
           const created = Array.isArray(result) ? result[0] : null;
           if (created) items.push(created);
@@ -2449,6 +2460,12 @@
             nameSpan.appendChild(emojiSpan);
           }
           nameSpan.appendChild(document.createTextNode(item.name));
+          if (item.note) {
+            const noteSpan = document.createElement('span');
+            noteSpan.className = 'item-note';
+            noteSpan.textContent = item.note;
+            nameSpan.appendChild(noteSpan);
+          }
 
           const actions = document.createElement('div');
           actions.className = 'item-actions';
