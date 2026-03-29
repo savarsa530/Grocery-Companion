@@ -39,6 +39,8 @@ const STRINGS = {
       title:        "Your shopping list",
       clearSection: "Clear section",
       clearChecked: "Clear checked",
+      copyList:     "Copy list",
+      copyListDone: "Copied!",
     },
 
     // Per-item actions

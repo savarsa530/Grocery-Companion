@@ -722,6 +722,41 @@
       padding: 1rem 0 0.5rem;
     }
 
+    /* Section collapse chevron */
+    .section-collapse-icon {
+      font-size: 10px;
+      color: var(--color-text-tertiary);
+      transition: transform 0.2s;
+      margin-right: 6px;
+      display: inline-block;
+    }
+
+    .section-group.collapsed .section-collapse-icon {
+      transform: rotate(-90deg);
+    }
+
+    .section-group.collapsed .section-items {
+      display: none;
+    }
+
+    .section-header {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    /* Copy list button */
+    .copy-list-btn {
+      font-size: 13px;
+      padding: 4px 10px;
+      color: var(--color-text-info);
+      border-color: var(--color-text-info);
+      opacity: 0.8;
+    }
+
+    .copy-list-btn:hover {
+      background: var(--color-background-info);
+    }
+
     /* Inline section re-assignment picker */
     .item-section-select {
       font-size: 11px;
@@ -874,7 +909,10 @@
     <div id="shoppingListContainer" class="hidden">
       <div class="list-header">
         <h2 id="listTitle"></h2>
-        <button id="clearCheckedBtn" class="clear-checked-btn hidden" aria-label="Clear all checked items" onclick="clearCheckedItems()"></button>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button id="copyListBtn" class="copy-list-btn" aria-label="Copy full list to clipboard" onclick="copyFullList()"></button>
+          <button id="clearCheckedBtn" class="clear-checked-btn hidden" aria-label="Clear all checked items" onclick="clearCheckedItems()"></button>
+        </div>
       </div>
       <div class="progress-wrap">
         <div class="progress-label">
@@ -988,6 +1026,7 @@
       document.getElementById('favoritesTitle').innerHTML        =
         `${t('favorites.title')} (<span id="favCountDetail">0</span>)`;
       document.getElementById('clearCheckedBtn').textContent     = t('list.clearChecked');
+      document.getElementById('copyListBtn').textContent        = t('list.copyList');
       document.getElementById('celebrationBtn').textContent     = t('celebration.btn');
       document.getElementById('appVersion').textContent         = `v${CONFIG.app.version}`;
     }
@@ -998,13 +1037,13 @@
       renderThemePicker();
     });
 
-    // Swatch preview colors per theme (always light variant for consistency)
-    const THEME_PREVIEWS = {
-      sage:   { bg: '#f0ede8', accent: '#185fa5' },
-      ocean:  { bg: '#e4eff9', accent: '#0059a8' },
-      berry:  { bg: '#ede8f8', accent: '#5a20c0' },
-      forest: { bg: '#e6efe4', accent: '#2a6018' },
-    };
+    // Swatch preview colors — derived from each theme's light variant so they never drift out of sync
+    const THEME_PREVIEWS = Object.fromEntries(
+      Object.entries(THEMES).map(([key, theme]) => [
+        key,
+        { bg: theme.light.backgroundTertiary, accent: theme.light.textInfo }
+      ])
+    );
 
     function setTheme(key) {
       CONFIG.activeTheme = key;
@@ -1060,6 +1099,7 @@
     let favorites = [];
     let sections = [];
     let isAddingItem = false;
+    const collapsedSections = new Set();
 
     // --- Supabase helpers ---
 
@@ -1408,6 +1448,7 @@
       document.getElementById('celebrationMessage').textContent = pick.message;
       document.getElementById('celebrationSub').textContent     = pick.sub;
       document.getElementById('celebration').classList.add('visible');
+      setTimeout(() => document.getElementById('celebrationBtn').focus(), 50);
       updateStreak();
       launchConfetti();
     }
@@ -1638,15 +1679,39 @@
     function copyToClipboard(text, id) {
       navigator.clipboard.writeText(text).then(() => {
         const btn = document.getElementById(`copy-${id}`);
+        if (!btn) return;
         btn.textContent = t('item.copied');
         btn.classList.add('copied');
         setTimeout(() => {
+          if (!document.getElementById(`copy-${id}`)) return;
           btn.textContent = t('item.copy');
           btn.classList.remove('copied');
         }, 2000);
       }).catch(() => {
         setStatus(t('status.clipboardError'), true);
       });
+    }
+
+    function copyFullList() {
+      const visibleSections = focusSection ? [focusSection] : sections;
+      const lines = [];
+      visibleSections.forEach(section => {
+        const sectionItems = items.filter(i => i.section === section);
+        if (sectionItems.length === 0) return;
+        lines.push(section + ':');
+        sectionItems.forEach(i => {
+          const prefix = i.emoji ? `${i.emoji} ` : '- ';
+          const checked = i.checked ? ' ✓' : '';
+          lines.push(`  ${prefix}${i.name}${checked}`);
+        });
+        lines.push('');
+      });
+      const text = lines.join('\n').trim();
+      const btn = document.getElementById('copyListBtn');
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = t('list.copyListDone');
+        setTimeout(() => { btn.textContent = t('list.copyList'); }, 2000);
+      }).catch(() => setStatus(t('status.clipboardError'), true));
     }
 
     function handleKeyPress(event) {
@@ -1731,14 +1796,34 @@
         const sectionItems = items.filter(item => item.section === section);
         if (sectionItems.length === 0) return;
 
+        const isCollapsed = collapsedSections.has(section);
+
         const sectionDiv = document.createElement('div');
-        sectionDiv.className = 'section-group';
+        sectionDiv.className = 'section-group' + (isCollapsed ? ' collapsed' : '');
 
         const header = document.createElement('div');
         header.className = 'section-header';
+        header.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+        header.onclick = (e) => {
+          // Don't collapse when clicking action buttons
+          if (e.target.tagName === 'BUTTON') return;
+          if (collapsedSections.has(section)) {
+            collapsedSections.delete(section);
+          } else {
+            collapsedSections.add(section);
+          }
+          sectionDiv.classList.toggle('collapsed');
+          header.setAttribute('aria-expanded', collapsedSections.has(section) ? 'false' : 'true');
+        };
+
         const uncheckedCount = sectionItems.filter(i => !i.checked).length;
         const h3 = document.createElement('h3');
-        h3.textContent = `${section} (${uncheckedCount}/${sectionItems.length})`;
+        const chevron = document.createElement('span');
+        chevron.className = 'section-collapse-icon';
+        chevron.setAttribute('aria-hidden', 'true');
+        chevron.textContent = '▼';
+        h3.appendChild(chevron);
+        h3.appendChild(document.createTextNode(`${section} (${uncheckedCount}/${sectionItems.length})`));
         header.appendChild(h3);
 
         const headerBtns = document.createElement('div');
@@ -1915,6 +2000,26 @@
         buttons.appendChild(btn);
       });
     }
+
+    // --- Escape key: dismiss modals and forms in priority order ---
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (document.getElementById('celebration').classList.contains('visible')) {
+        dismissCelebration();
+      } else if (!document.getElementById('addSectionForm').classList.contains('hidden')) {
+        cancelAddSection();
+      } else if (focusSection) {
+        exitFocus();
+      }
+    });
+
+    // --- Celebration focus trap: keep Tab within the modal while it's visible ---
+    document.getElementById('celebration').addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab') return;
+      const btn = document.getElementById('celebrationBtn');
+      e.preventDefault();
+      btn.focus();
+    });
 
     // Initialize
     loadSavedTheme();
