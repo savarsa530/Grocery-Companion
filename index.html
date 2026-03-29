@@ -829,6 +829,145 @@
     }
 
     /* ------------------------------------------------------------------ */
+    /* Recipe import                                                        */
+    /* ------------------------------------------------------------------ */
+
+    .import-toggle-btn {
+      font-size: 12px;
+      padding: 3px 10px;
+      color: var(--color-text-secondary);
+      border-color: var(--color-border-tertiary);
+      margin-top: 0.5rem;
+    }
+
+    .import-toggle-btn:hover { color: var(--color-text-primary); }
+
+    .recipe-import-panel {
+      margin-top: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .recipe-import-panel textarea {
+      width: 100%;
+      min-height: 90px;
+      resize: vertical;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .recipe-import-actions { display: flex; gap: 8px; }
+
+    /* ------------------------------------------------------------------ */
+    /* Templates                                                            */
+    /* ------------------------------------------------------------------ */
+
+    .save-template-btn {
+      font-size: 13px;
+      padding: 4px 10px;
+      color: var(--color-text-secondary);
+      border-color: var(--color-border-tertiary);
+    }
+
+    .template-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .template-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      background: var(--color-background-primary);
+      border: 0.5px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-md);
+      font-size: 14px;
+    }
+
+    .template-meta { flex: 1; }
+
+    .template-name { font-weight: 500; }
+
+    .template-count {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      margin-top: 2px;
+    }
+
+    .template-actions { display: flex; gap: 6px; align-items: center; }
+
+    .template-load-btn {
+      font-size: 12px;
+      padding: 3px 10px;
+      background: var(--color-background-info);
+      color: var(--color-text-info);
+      border: none;
+    }
+
+    .template-delete-btn {
+      background: transparent;
+      border: none;
+      color: var(--color-text-danger);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 0 4px;
+    }
+
+    .save-template-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 500;
+    }
+
+    .save-template-card {
+      background: var(--color-background-primary);
+      border: 0.5px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-lg);
+      padding: 1.5rem;
+      width: min(320px, 90vw);
+    }
+
+    .save-template-card h3 {
+      font-size: 15px;
+      font-weight: 500;
+      margin-bottom: 0.75rem;
+    }
+
+    .save-template-card input { width: 100%; margin-bottom: 0.75rem; }
+
+    .save-template-modal-actions { display: flex; gap: 8px; }
+
+    /* ------------------------------------------------------------------ */
+    /* Drag-and-drop                                                        */
+    /* ------------------------------------------------------------------ */
+
+    .item-drag-handle {
+      color: var(--color-text-tertiary);
+      cursor: grab;
+      padding: 4px 8px 4px 0;
+      font-size: 13px;
+      flex-shrink: 0;
+      opacity: 0.4;
+      transition: opacity 0.15s;
+      user-select: none;
+    }
+
+    .item-drag-handle:hover { opacity: 1; }
+    .item-drag-handle:active { cursor: grabbing; }
+    .item-row.dragging { opacity: 0.35; }
+
+    .item-row.drag-over-above { box-shadow: inset 0 2px 0 var(--color-text-info); }
+    .item-row.drag-over-below { box-shadow: inset 0 -2px 0 var(--color-text-info); }
+    .section-header.drag-over { background: var(--color-background-info); color: var(--color-text-info); }
+
+    /* ------------------------------------------------------------------ */
     /* Mobile layout (≤ 520px)                                             */
     /* ------------------------------------------------------------------ */
     @media (max-width: 520px) {
@@ -958,6 +1097,19 @@
         <button id="addItemBtn" onclick="addItem()"></button>
       </div>
 
+      <button id="importToggleBtn" class="import-toggle-btn" onclick="toggleRecipeImport()"></button>
+      <div id="recipeImportPanel" class="recipe-import-panel hidden">
+        <textarea
+          id="recipeInput"
+          name="recipeInput"
+          aria-label="Recipe URL or ingredient list"
+        ></textarea>
+        <div class="recipe-import-actions">
+          <button id="importBtn" onclick="importRecipe()"></button>
+          <button id="importCancelBtn" onclick="toggleRecipeImport()"></button>
+        </div>
+      </div>
+
       <div id="quickAddContainer" class="hidden quick-add">
         <span id="quickAddLabel" class="quick-add-label"></span>
         <div id="quickAddButtons" class="quick-add-buttons"></div>
@@ -969,6 +1121,7 @@
       <div class="list-header">
         <h2 id="listTitle"></h2>
         <div style="display:flex;gap:6px;align-items:center;">
+          <button id="saveTemplateBtn" class="save-template-btn" aria-label="Save list as template" onclick="openSaveTemplateModal()"></button>
           <button id="copyListBtn" class="copy-list-btn" aria-label="Copy full list to clipboard" onclick="copyFullList()"></button>
           <button id="clearCheckedBtn" class="clear-checked-btn hidden" aria-label="Clear all checked items" onclick="clearCheckedItems()"></button>
         </div>
@@ -987,6 +1140,24 @@
         <button id="exitFocusBtn" onclick="exitFocus()">Exit focus</button>
       </div>
       <div id="shoppingList"></div>
+    </div>
+
+    <!-- Save-template modal -->
+    <div id="saveTemplateModal" class="save-template-modal hidden" onclick="closeSaveTemplateModal()">
+      <div class="save-template-card" onclick="event.stopPropagation()">
+        <h3 id="saveTemplateModalTitle"></h3>
+        <input
+          type="text"
+          id="templateNameInput"
+          name="templateNameInput"
+          aria-label="Template name"
+          onkeydown="if(event.key==='Enter')confirmSaveTemplate();if(event.key==='Escape')closeSaveTemplateModal();"
+        />
+        <div class="save-template-modal-actions">
+          <button id="saveTemplateConfirmBtn" onclick="confirmSaveTemplate()"></button>
+          <button id="saveTemplateCancelBtn" onclick="closeSaveTemplateModal()"></button>
+        </div>
+      </div>
     </div>
 
     <!-- Celebration overlay -->
@@ -1029,6 +1200,12 @@
       <div id="favoritesContainer"></div>
     </div>
 
+    <!-- Templates Manager -->
+    <div class="card">
+      <h2 id="templatesTitle"></h2>
+      <div id="templatesContainer"></div>
+    </div>
+
     <footer class="app-footer">
       <span id="appVersion"></span>
     </footer>
@@ -1040,7 +1217,8 @@
   <script>
     const SUPABASE_URL = 'https://lrmdawizqxfaoncddwnz.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWRhd2l6cXhmYW9uY2Rkd256Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMjI2MDYsImV4cCI6MjA4OTU5ODYwNn0.jlPZgYiGC71jZVWZg_ub0WxFO53ONF42PApk3AsUEUw';
-    const CATEGORIZE_URL = `${SUPABASE_URL}/functions/v1/categorize-item`;
+    const CATEGORIZE_URL    = `${SUPABASE_URL}/functions/v1/categorize-item`;
+    const PARSE_RECIPE_URL  = `${SUPABASE_URL}/functions/v1/parse-recipe`;
 
     // --- Config bootstrap ---
 
@@ -1085,10 +1263,20 @@
       document.getElementById('addSectionBtn').textContent       = t('sections.newBtn');
       document.getElementById('favoritesTitle').innerHTML        =
         `${t('favorites.title')} (<span id="favCountDetail">0</span>)`;
-      document.getElementById('clearCheckedBtn').textContent     = t('list.clearChecked');
-      document.getElementById('copyListBtn').textContent        = t('list.copyList');
-      document.getElementById('celebrationBtn').textContent     = t('celebration.btn');
-      document.getElementById('appVersion').textContent         = `v${CONFIG.app.version}`;
+      document.getElementById('clearCheckedBtn').textContent      = t('list.clearChecked');
+      document.getElementById('copyListBtn').textContent         = t('list.copyList');
+      document.getElementById('saveTemplateBtn').textContent     = t('templates.saveBtn');
+      document.getElementById('importToggleBtn').textContent     = t('recipe.toggleBtn');
+      document.getElementById('importBtn').textContent           = t('recipe.importBtn');
+      document.getElementById('importCancelBtn').textContent     = t('recipe.cancelBtn');
+      document.getElementById('recipeInput').placeholder        = t('recipe.placeholder');
+      document.getElementById('templatesTitle').textContent      = t('templates.title');
+      document.getElementById('saveTemplateModalTitle').textContent = t('templates.modalTitle');
+      document.getElementById('saveTemplateConfirmBtn').textContent = t('templates.confirmBtn');
+      document.getElementById('saveTemplateCancelBtn').textContent  = t('templates.cancelBtn');
+      document.getElementById('templateNameInput').placeholder   = t('templates.namePlaceholder');
+      document.getElementById('celebrationBtn').textContent      = t('celebration.btn');
+      document.getElementById('appVersion').textContent          = `v${CONFIG.app.version}`;
     }
 
     // Re-apply theme if user switches system preference while the tab is open
@@ -1158,8 +1346,13 @@
     let items = [];
     let favorites = [];
     let sections = [];
+    let templates = [];
     let isAddingItem = false;
     const collapsedSections = new Set();
+
+    // Drag-and-drop state
+    let draggedItemId = null;
+    let draggedItemSection = null;
 
     // --- Supabase helpers ---
 
@@ -1212,15 +1405,27 @@
 
     async function loadData() {
       try {
-        const [sects, favs, itms] = await Promise.all([
+        const [sects, favs, itms, tmps] = await Promise.all([
           sb('sections?order=position.asc,name.asc'),
           sb('favorites?order=created_at.asc'),
-          sb('items?order=created_at.asc')
+          sb('items?order=position.asc,created_at.asc'),
+          sb('templates?order=created_at.asc'),
         ]);
         sections = sects.map(s => s.name);
         if (sections.length === 0) await seedDefaultSections();
         favorites = favs;
         items = itms;
+        templates = tmps || [];
+
+        // Ensure sequential positions per section (for items that pre-date DnD)
+        const sectionPos = {};
+        items.forEach(item => {
+          const sec = item.section;
+          sectionPos[sec] = (sectionPos[sec] ?? 0);
+          if (item.position === 0 && sectionPos[sec] > 0) item.position = sectionPos[sec];
+          sectionPos[sec]++;
+        });
+
         updateUI();
       } catch (e) {
         setStatus(t('status.noConnection'), true);
@@ -1326,10 +1531,12 @@
         // Sync the dropdown to reflect the chosen section
         sectionEl.value = section;
 
+        const sectionPos = items.filter(i => i.section === section);
+        const position = sectionPos.length > 0 ? Math.max(...sectionPos.map(i => i.position || 0)) + 1 : 0;
         const insertResult = await sb('items?select=*', {
           method: 'POST',
           prefer: 'return=representation',
-          body: { name, section, emoji }
+          body: { name, section, emoji, position }
         });
         const created = Array.isArray(insertResult) ? insertResult[0] : null;
         if (!created) throw new Error('No item returned from insert');
@@ -1651,10 +1858,12 @@
       const fav = favorites.find(f => f.id === favId);
       if (!fav) return;
       try {
+        const favSectionItems = items.filter(i => i.section === fav.section);
+        const favPosition = favSectionItems.length > 0 ? Math.max(...favSectionItems.map(i => i.position || 0)) + 1 : 0;
         const favItemResult = await sb('items?select=*', {
           method: 'POST',
           prefer: 'return=representation',
-          body: { name: fav.name, section: fav.section, emoji: fav.emoji || '' }
+          body: { name: fav.name, section: fav.section, emoji: fav.emoji || '', position: favPosition }
         });
         const created = Array.isArray(favItemResult) ? favItemResult[0] : null;
         if (!created) throw new Error('No item returned from insert');
@@ -1775,6 +1984,182 @@
       }).catch(() => setStatus(t('status.clipboardError'), true));
     }
 
+    // --- Recipe import ---
+
+    let recipeImportOpen = false;
+
+    function toggleRecipeImport() {
+      recipeImportOpen = !recipeImportOpen;
+      document.getElementById('recipeImportPanel').classList.toggle('hidden', !recipeImportOpen);
+      document.getElementById('importToggleBtn').textContent = recipeImportOpen
+        ? t('recipe.toggleClose')
+        : t('recipe.toggleBtn');
+      if (recipeImportOpen) document.getElementById('recipeInput').focus();
+      else document.getElementById('recipeInput').value = '';
+    }
+
+    async function importRecipe() {
+      const raw = document.getElementById('recipeInput').value.trim();
+      if (!raw) return;
+
+      const isUrl = /^https?:\/\//i.test(raw);
+      const btn = document.getElementById('importBtn');
+      btn.textContent = t('recipe.importing');
+      btn.disabled = true;
+
+      try {
+        const body = isUrl
+          ? { url: raw, sections }
+          : { text: raw, sections };
+
+        const res = await fetch(PARSE_RECIPE_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify(body),
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.items?.length) {
+          setStatus(data.error || t('recipe.noItems'), !res.ok);
+          return;
+        }
+
+        // Bulk-insert all parsed items
+        for (const parsed of data.items) {
+          const sec = sections.find(s => s.toLowerCase() === parsed.section.toLowerCase()) || sections[sections.length - 1];
+          const sectionItems = items.filter(i => i.section === sec);
+          const position = sectionItems.length > 0 ? Math.max(...sectionItems.map(i => i.position || 0)) + 1 : 0;
+          const result = await sb('items?select=*', {
+            method: 'POST',
+            prefer: 'return=representation',
+            body: { name: parsed.name, section: sec, emoji: parsed.emoji || '', quantity: parsed.quantity || 1, position },
+          });
+          const created = Array.isArray(result) ? result[0] : null;
+          if (created) items.push(created);
+        }
+
+        setStatus(t('recipe.imported', { count: data.items.length }));
+        toggleRecipeImport();
+        updateUI();
+      } catch (e) {
+        setStatus(t('recipe.error'), true);
+        console.error(e);
+      } finally {
+        btn.textContent = t('recipe.importBtn');
+        btn.disabled = false;
+      }
+    }
+
+    // --- Templates ---
+
+    function openSaveTemplateModal() {
+      if (items.length === 0) return;
+      const modal = document.getElementById('saveTemplateModal');
+      const input = document.getElementById('templateNameInput');
+      modal.classList.remove('hidden');
+      input.value = '';
+      setTimeout(() => input.focus(), 50);
+    }
+
+    function closeSaveTemplateModal() {
+      document.getElementById('saveTemplateModal').classList.add('hidden');
+    }
+
+    async function confirmSaveTemplate() {
+      const name = document.getElementById('templateNameInput').value.trim();
+      if (!name) return;
+      const templateItems = items.map(({ name: n, section, emoji, quantity }) => ({
+        name: n, section, emoji: emoji || '', quantity: quantity || 1,
+      }));
+      try {
+        const result = await sb('templates?select=*', {
+          method: 'POST',
+          prefer: 'return=representation',
+          body: { name, items: templateItems },
+        });
+        const created = Array.isArray(result) ? result[0] : null;
+        if (created) templates.push(created);
+        closeSaveTemplateModal();
+        setStatus(t('templates.saved'));
+        updateTemplatesUI();
+      } catch (e) {
+        setStatus(t('templates.errorSave'), true);
+      }
+    }
+
+    async function loadTemplate(id) {
+      const tmpl = templates.find(t => t.id === id);
+      if (!tmpl || !tmpl.items?.length) return;
+      try {
+        for (const ti of tmpl.items) {
+          const sec = sections.find(s => s.toLowerCase() === ti.section.toLowerCase()) || sections[sections.length - 1];
+          const sectionItems = items.filter(i => i.section === sec);
+          const position = sectionItems.length > 0 ? Math.max(...sectionItems.map(i => i.position || 0)) + 1 : 0;
+          const result = await sb('items?select=*', {
+            method: 'POST',
+            prefer: 'return=representation',
+            body: { name: ti.name, section: sec, emoji: ti.emoji || '', quantity: ti.quantity || 1, position },
+          });
+          const created = Array.isArray(result) ? result[0] : null;
+          if (created) items.push(created);
+        }
+        setStatus(t('templates.loaded', { count: tmpl.items.length, name: tmpl.name }));
+        updateUI();
+      } catch (e) {
+        setStatus(t('templates.errorLoad'), true);
+      }
+    }
+
+    async function deleteTemplate(id) {
+      try {
+        await sb(`templates?id=eq.${id}`, { method: 'DELETE' });
+        templates = templates.filter(t => t.id !== id);
+        updateTemplatesUI();
+      } catch (e) {
+        setStatus(t('templates.errorDelete'), true);
+      }
+    }
+
+    // --- Drag-and-drop ---
+
+    async function reorderItem(draggedId, targetId, targetSection, insertBefore) {
+      const draggedItem = items.find(i => i.id === draggedId);
+      if (!draggedItem) return;
+
+      // Cross-section move: just update section
+      if (draggedItem.section !== targetSection) {
+        await moveItemToSection(draggedId, targetSection);
+        return;
+      }
+
+      // Within-section reorder
+      const sectionItems = items.filter(i => i.section === targetSection)
+        .sort((a, b) => (a.position || 0) - (b.position || 0));
+
+      const fromIdx = sectionItems.findIndex(i => i.id === draggedId);
+      let toIdx = sectionItems.findIndex(i => i.id === targetId);
+      if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return;
+
+      // Adjust toIdx for the "above" case
+      if (!insertBefore && toIdx < sectionItems.length - 1) toIdx++;
+
+      sectionItems.splice(toIdx, 0, sectionItems.splice(fromIdx, 1)[0]);
+      sectionItems.forEach((item, idx) => { item.position = idx; });
+
+      updateShoppingList();
+
+      // Persist new positions in the background
+      Promise.all(
+        sectionItems.map(item =>
+          sb(`items?id=eq.${item.id}`, { method: 'PATCH', prefer: 'return=minimal', body: { position: item.position } })
+        )
+      ).catch(e => console.error('Failed to persist order:', e));
+    }
+
     async function updateQuantity(id, delta) {
       const item = items.find(i => i.id === id);
       if (!item) return;
@@ -1841,6 +2226,7 @@
       updateSectionsManager();
       updateFavoritesUI();
       updateQuickAdd();
+      updateTemplatesUI();
     }
 
     function updateCounts() {
@@ -1925,6 +2311,23 @@
           header.setAttribute('aria-expanded', collapsedSections.has(section) ? 'false' : 'true');
         };
 
+        // Cross-section drop: drag an item onto the section header
+        header.addEventListener('dragover', (e) => {
+          if (draggedItemSection && draggedItemSection !== section) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            header.classList.add('drag-over');
+          }
+        });
+        header.addEventListener('dragleave', () => header.classList.remove('drag-over'));
+        header.addEventListener('drop', (e) => {
+          e.preventDefault();
+          header.classList.remove('drag-over');
+          if (!draggedItemId || draggedItemSection === section) return;
+          moveItemToSection(draggedItemId, section);
+          draggedItemId = null;
+        });
+
         const uncheckedCount = sectionItems.filter(i => !i.checked).length;
         const h3 = document.createElement('h3');
         const chevron = document.createElement('span');
@@ -1963,6 +2366,47 @@
           const row = document.createElement('div');
           row.className = 'item-row';
           row.id = `row-${item.id}`;
+          row.draggable = true;
+
+          // Drag handle
+          const dragHandle = document.createElement('span');
+          dragHandle.className = 'item-drag-handle';
+          dragHandle.textContent = '⠿';
+          dragHandle.setAttribute('aria-hidden', 'true');
+
+          // Drag events
+          row.addEventListener('dragstart', (e) => {
+            draggedItemId = item.id;
+            draggedItemSection = item.section;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setDragImage(row, 20, row.offsetHeight / 2);
+            setTimeout(() => row.classList.add('dragging'), 0);
+          });
+          row.addEventListener('dragend', () => {
+            row.classList.remove('dragging');
+            document.querySelectorAll('.drag-over-above, .drag-over-below').forEach(el => {
+              el.classList.remove('drag-over-above', 'drag-over-below');
+            });
+          });
+          row.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            if (draggedItemId === item.id) return;
+            e.dataTransfer.dropEffect = 'move';
+            const rect = row.getBoundingClientRect();
+            row.classList.remove('drag-over-above', 'drag-over-below');
+            row.classList.add(e.clientY < rect.top + rect.height / 2 ? 'drag-over-above' : 'drag-over-below');
+          });
+          row.addEventListener('dragleave', () => {
+            row.classList.remove('drag-over-above', 'drag-over-below');
+          });
+          row.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const insertBefore = row.classList.contains('drag-over-above');
+            row.classList.remove('drag-over-above', 'drag-over-below');
+            if (!draggedItemId || draggedItemId === item.id) return;
+            reorderItem(draggedItemId, item.id, item.section, insertBefore);
+            draggedItemId = null;
+          });
 
           const checkBtn = document.createElement('button');
           checkBtn.className = 'item-check' + (item.checked ? ' checked' : '');
@@ -2053,7 +2497,7 @@
           sectionPicker.onchange = () => moveItemToSection(item.id, sectionPicker.value);
 
           actions.append(findLink, copyBtn, heartBtn, deleteBtn, sectionPicker);
-          row.append(checkBtn, qtyDiv, nameSpan, actions);
+          row.append(dragHandle, checkBtn, qtyDiv, nameSpan, actions);
           itemsDiv.appendChild(row);
         });
 
@@ -2132,11 +2576,63 @@
       });
     }
 
+    function updateTemplatesUI() {
+      const container = document.getElementById('templatesContainer');
+      container.innerHTML = '';
+      if (templates.length === 0) {
+        const p = document.createElement('p');
+        p.className = 'empty-state';
+        p.textContent = t('templates.emptyState');
+        container.appendChild(p);
+        return;
+      }
+      const list = document.createElement('div');
+      list.className = 'template-list';
+      templates.forEach(tmpl => {
+        const item = document.createElement('div');
+        item.className = 'template-item';
+
+        const meta = document.createElement('div');
+        meta.className = 'template-meta';
+        const nameEl = document.createElement('div');
+        nameEl.className = 'template-name';
+        nameEl.textContent = tmpl.name;
+        const countEl = document.createElement('div');
+        countEl.className = 'template-count';
+        countEl.textContent = `${tmpl.items?.length ?? 0} items`;
+        meta.append(nameEl, countEl);
+
+        const actions = document.createElement('div');
+        actions.className = 'template-actions';
+
+        const loadBtn = document.createElement('button');
+        loadBtn.className = 'template-load-btn action-btn';
+        loadBtn.textContent = t('templates.loadBtn');
+        loadBtn.setAttribute('aria-label', `Load template ${tmpl.name}`);
+        loadBtn.onclick = () => loadTemplate(tmpl.id);
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'template-delete-btn';
+        delBtn.textContent = '✕';
+        delBtn.setAttribute('aria-label', `Delete template ${tmpl.name}`);
+        delBtn.onclick = () => deleteTemplate(tmpl.id);
+
+        actions.append(loadBtn, delBtn);
+        item.append(meta, actions);
+        list.appendChild(item);
+      });
+      container.appendChild(list);
+    }
+
     // --- Escape key: dismiss modals and forms in priority order ---
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
       if (document.getElementById('celebration').classList.contains('visible')) {
         dismissCelebration();
+      } else if (!document.getElementById('saveTemplateModal').classList.contains('hidden')) {
+        closeSaveTemplateModal();
+      } else if (recipeImportOpen) {
+        toggleRecipeImport();
       } else if (!document.getElementById('addSectionForm').classList.contains('hidden')) {
         cancelAddSection();
       } else if (focusSection) {

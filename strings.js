@@ -69,6 +69,36 @@ const STRINGS = {
       emptyState:   "Heart items you shop for regularly, and they'll appear above as quick-add buttons.",
     },
 
+    // Recipe import
+    recipe: {
+      toggleBtn:    "↓ Import from recipe",
+      toggleClose:  "↑ Close import",
+      placeholder:  "Paste a recipe URL or ingredient list…",
+      importBtn:    "Import items",
+      cancelBtn:    "Cancel",
+      importing:    "Importing…",
+      imported:     "Added {count} items",
+      noItems:      "No ingredients found.",
+      error:        "Could not import recipe.",
+    },
+
+    // List templates
+    templates: {
+      title:           "List templates",
+      emptyState:      "Save your current list as a reusable template.",
+      saveBtn:         "Save template",
+      modalTitle:      "Name this template",
+      namePlaceholder: "e.g. Weekly staples",
+      confirmBtn:      "Save",
+      cancelBtn:       "Cancel",
+      loadBtn:         "Load",
+      loaded:          "Added {count} items from \"{name}\".",
+      saved:           "Template saved.",
+      errorSave:       "Failed to save template.",
+      errorLoad:       "Failed to load template.",
+      errorDelete:     "Failed to delete template.",
+    },
+
     // Focus mode
     focus: {
       allSections:  "📍 All sections",
