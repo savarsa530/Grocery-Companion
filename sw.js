@@ -4,7 +4,7 @@
  * Supabase API calls always go to the network.
  */
 
-const CACHE = 'grocery-v1.5.0';
+const CACHE = 'grocery-v1.6.2';
 const SHELL = [
   './',
   './index.html',

@@ -109,6 +109,33 @@ const STRINGS = {
     // Celebration overlay
     celebration: {
       btn:          "Let's go again 🛒",
+      messages: [
+        { emoji: '🏆', message: 'LIST CONQUERED!',        sub: 'You absolute legend.' },
+        { emoji: '🎉', message: 'YOU DID THE THING!',     sub: 'Future you is grateful.' },
+        { emoji: '🔥', message: "That's how it's done!",  sub: 'Grocery boss mode: activated.' },
+        { emoji: '✅', message: 'CLEAN SWEEP!',           sub: 'Every. Single. Item.' },
+        { emoji: '💪', message: "You're basically a pro.", sub: 'Certified grocery champion.' },
+        { emoji: '🚀', message: "LET'S GOOO!",            sub: 'Nothing could stop you.' },
+        { emoji: '✨', message: 'Nailed it.',              sub: 'Go treat yourself. You earned it.' },
+      ],
+    },
+
+    // Encouragement toasts (shown while checking off items)
+    encouragements: {
+      early: [
+        "Let's GOOO! 🚀", "First one down! 💪", "You started — that's everything.",
+        "Here we go! 🔥", "Off to the races! 🏁",
+      ],
+      middle: [
+        "Nice! 🔥", "Keep going! 💪", "You're on a roll!",
+        "Crushing it! ✨", "Look at you go 👀", "Smooth operator 😎",
+        "That's the spirit! 🙌", "One down!", "Making moves 🛒",
+        "Grocery legend in the making 🏆",
+      ],
+      late: [
+        "Almost there! 🏁", "SO close!", "Home stretch! 🎯",
+        "Don't stop now! ⚡", "Last few — you got this! 💥", "Finish line in sight! 👀",
+      ],
     },
 
     // Status / feedback messages
