@@ -1179,7 +1179,7 @@
           return { section: localSection, emoji: '' };
         }
         const data = await res.json();
-        console.log('[categorize]', name, '→ local:', localSection, '| edge:', data.section);
+        console.log('[categorize]', name, '→ local:', localSection, '| edge:', data.section, '| emoji:', data.emoji);
         return {
           section: localSection || data.section || null,
           emoji: data.emoji || ''
