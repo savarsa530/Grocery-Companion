@@ -4,6 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Grocery Companion</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#f0ede8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Grocery">
+  <link rel="apple-touch-icon" href="icon.svg">
   <style>
     * {
       margin: 0;
@@ -757,6 +763,53 @@
       background: var(--color-background-info);
     }
 
+    /* ------------------------------------------------------------------ */
+    /* Item quantity stepper                                               */
+    /* ------------------------------------------------------------------ */
+
+    .item-qty {
+      display: flex;
+      align-items: center;
+      background: var(--color-background-tertiary);
+      border: 0.5px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-md);
+      overflow: hidden;
+      flex-shrink: 0;
+      margin-right: 6px;
+    }
+
+    .item-qty-btn {
+      width: 24px;
+      height: 24px;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      color: var(--color-text-secondary);
+      font-size: 15px;
+      font-weight: 600;
+      padding: 0;
+      cursor: pointer;
+      flex-shrink: 0;
+      min-height: unset;
+      line-height: 1;
+    }
+
+    .item-qty-btn:hover {
+      background: var(--color-background-secondary);
+      color: var(--color-text-primary);
+    }
+
+    .item-qty-value {
+      min-width: 22px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-text-primary);
+      padding: 0 2px;
+      pointer-events: none;
+      user-select: none;
+    }
+
     /* Inline section re-assignment picker */
     .item-section-select {
       font-size: 11px;
@@ -827,6 +880,12 @@
       .item-section-select {
         max-width: 72px;
         font-size: 10px;
+      }
+
+      .item-qty-btn {
+        min-height: unset;
+        width: 28px;
+        height: 28px;
       }
 
       /* Hide "at Walmart" on small screens — button reads just "Find" */
@@ -975,6 +1034,7 @@
     </footer>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="config.js"></script>
   <script src="strings.js"></script>
   <script>
@@ -1701,8 +1761,9 @@
         lines.push(section + ':');
         sectionItems.forEach(i => {
           const prefix = i.emoji ? `${i.emoji} ` : '- ';
+          const qty = i.quantity && i.quantity > 1 ? ` ×${i.quantity}` : '';
           const checked = i.checked ? ' ✓' : '';
-          lines.push(`  ${prefix}${i.name}${checked}`);
+          lines.push(`  ${prefix}${i.name}${qty}${checked}`);
         });
         lines.push('');
       });
@@ -1712,6 +1773,54 @@
         btn.textContent = t('list.copyListDone');
         setTimeout(() => { btn.textContent = t('list.copyList'); }, 2000);
       }).catch(() => setStatus(t('status.clipboardError'), true));
+    }
+
+    async function updateQuantity(id, delta) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+      const newQty = Math.max(1, (item.quantity || 1) + delta);
+      if (newQty === (item.quantity || 1)) return;
+      try {
+        await sb(`items?id=eq.${id}`, {
+          method: 'PATCH',
+          prefer: 'return=minimal',
+          body: { quantity: newQty }
+        });
+        item.quantity = newQty;
+        const qtyEl = document.getElementById(`qty-${id}`);
+        if (qtyEl) qtyEl.textContent = newQty;
+      } catch (e) {
+        setStatus(t('status.errorUpdateQty'), true);
+      }
+    }
+
+    // --- Realtime sync ---
+
+    let realtimeChannel = null;
+
+    function initRealtime() {
+      if (!window.supabase?.createClient) return;
+      const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      realtimeChannel = sbClient
+        .channel('items-live')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'items' }, payload => {
+          const { eventType, new: rec, old: old_ } = payload;
+          if (eventType === 'INSERT') {
+            if (!items.find(i => i.id === rec.id)) {
+              items.push(rec);
+              updateUI();
+            }
+          } else if (eventType === 'UPDATE') {
+            const idx = items.findIndex(i => i.id === rec.id);
+            if (idx !== -1) { items[idx] = rec; updateUI(); }
+          } else if (eventType === 'DELETE') {
+            if (items.some(i => i.id === old_.id)) {
+              items = items.filter(i => i.id !== old_.id);
+              updateUI();
+            }
+          }
+        })
+        .subscribe();
     }
 
     function handleKeyPress(event) {
@@ -1864,6 +1973,28 @@
           checkBtn.setAttribute('aria-label', (item.checked ? 'Uncheck' : 'Check off') + ' ' + item.name);
           checkBtn.onclick = () => toggleCheck(item.id);
 
+          const qtyDiv = document.createElement('div');
+          qtyDiv.className = 'item-qty';
+
+          const qtyMinus = document.createElement('button');
+          qtyMinus.className = 'item-qty-btn';
+          qtyMinus.textContent = '−';
+          qtyMinus.setAttribute('aria-label', t('item.decreaseQty', { name: item.name }));
+          qtyMinus.onclick = () => updateQuantity(item.id, -1);
+
+          const qtyVal = document.createElement('span');
+          qtyVal.className = 'item-qty-value';
+          qtyVal.id = `qty-${item.id}`;
+          qtyVal.textContent = item.quantity || 1;
+
+          const qtyPlus = document.createElement('button');
+          qtyPlus.className = 'item-qty-btn';
+          qtyPlus.textContent = '+';
+          qtyPlus.setAttribute('aria-label', t('item.increaseQty', { name: item.name }));
+          qtyPlus.onclick = () => updateQuantity(item.id, 1);
+
+          qtyDiv.append(qtyMinus, qtyVal, qtyPlus);
+
           const nameSpan = document.createElement('span');
           nameSpan.className = 'item-name' + (item.checked ? ' checked' : '');
           nameSpan.id = `name-${item.id}`;
@@ -1922,7 +2053,7 @@
           sectionPicker.onchange = () => moveItemToSection(item.id, sectionPicker.value);
 
           actions.append(findLink, copyBtn, heartBtn, deleteBtn, sectionPicker);
-          row.append(checkBtn, nameSpan, actions);
+          row.append(checkBtn, qtyDiv, nameSpan, actions);
           itemsDiv.appendChild(row);
         });
 
@@ -2027,7 +2158,12 @@
     applyIdentity();
     renderThemePicker();
     initStreak();
-    loadData();
+    loadData().then(initRealtime);
+
+    // Register service worker for offline/PWA support
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW registration failed:', e));
+    }
   </script>
 </body>
 </html>

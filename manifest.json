@@ -1,0 +1,17 @@
+{
+  "name": "Grocery Companion",
+  "short_name": "Grocery",
+  "description": "Shopping made intentional.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f0ede8",
+  "theme_color": "#f0ede8",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

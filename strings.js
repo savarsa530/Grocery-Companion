@@ -50,6 +50,8 @@ const STRINGS = {
       copied:       "Copied!",
       favorite:     "Save to favorites",
       delete:       "✕",
+      increaseQty:  "Increase quantity of {name}",
+      decreaseQty:  "Decrease quantity of {name}",
     },
 
     // Sections manager
@@ -94,6 +96,7 @@ const STRINGS = {
       errorDeleteSection: "Failed to delete section.",
       errorToggleCheck:   "Failed to update item.",
       errorMoveItem:      "Failed to move item.",
+      errorUpdateQty:     "Failed to update quantity.",
       clipboardError:     "Could not access clipboard.",
     },
 
