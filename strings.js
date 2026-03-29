@@ -65,6 +65,18 @@ const STRINGS = {
       emptyState:   "Heart items you shop for regularly, and they'll appear above as quick-add buttons.",
     },
 
+    // Focus mode
+    focus: {
+      allSections:  "📍 All sections",
+      focusingOn:   "📍 Focusing on: {section}",
+      focusBtn:     "Focus",
+    },
+
+    // Celebration overlay
+    celebration: {
+      btn:          "Let's go again 🛒",
+    },
+
     // Status / feedback messages
     status: {
       categorizing:       "Categorizing...",
@@ -80,6 +92,7 @@ const STRINGS = {
       errorDeleteSection: "Failed to delete section.",
       errorToggleCheck:   "Failed to update item.",
       errorMoveItem:      "Failed to move item.",
+      clipboardError:     "Could not access clipboard.",
     },
 
   },

@@ -274,7 +274,6 @@
       margin-right: 10px;
       transition: background 0.15s, border-color 0.15s;
       min-height: unset;
-      border-color: var(--color-border-secondary);
     }
 
     .item-check.checked {
@@ -886,7 +885,7 @@
           <div id="progressFill" class="progress-fill"></div>
         </div>
       </div>
-      <div id="focusBanner" class="focus-banner hidden">
+      <div id="focusBanner" class="focus-banner hidden" aria-live="polite">
         <span id="focusBannerText"></span>
         <button id="exitFocusBtn" onclick="exitFocus()">Exit focus</button>
       </div>
@@ -894,20 +893,20 @@
     </div>
 
     <!-- Celebration overlay -->
-    <div id="celebration" class="celebration" onclick="dismissCelebration()">
+    <div id="celebration" class="celebration" role="alertdialog" aria-modal="true" onclick="dismissCelebration()">
       <div class="celebration-card" onclick="event.stopPropagation()">
         <span id="celebrationEmoji" class="celebration-emoji"></span>
         <div id="celebrationMessage" class="celebration-message"></div>
         <div id="celebrationSub" class="celebration-sub"></div>
-        <button class="celebration-btn" onclick="dismissCelebration()">Let's go again 🛒</button>
+        <button id="celebrationBtn" class="celebration-btn" onclick="dismissCelebration()"></button>
       </div>
     </div>
 
     <!-- Confetti canvas -->
-    <canvas id="confettiCanvas"></canvas>
+    <canvas id="confettiCanvas" aria-hidden="true"></canvas>
 
     <!-- Encouragement toast -->
-    <div id="encourageToast" style="display:none"></div>
+    <div id="encourageToast" role="status" aria-live="polite" style="display:none"></div>
 
     <!-- Sections Manager -->
     <div class="card">
@@ -989,6 +988,7 @@
       document.getElementById('favoritesTitle').innerHTML        =
         `${t('favorites.title')} (<span id="favCountDetail">0</span>)`;
       document.getElementById('clearCheckedBtn').textContent     = t('list.clearChecked');
+      document.getElementById('celebrationBtn').textContent     = t('celebration.btn');
       document.getElementById('appVersion').textContent         = `v${CONFIG.app.version}`;
     }
 
@@ -1022,13 +1022,28 @@
 
     function renderThemePicker() {
       const picker = document.getElementById('themePicker');
+      const themeKeys = Object.keys(THEMES);
+
+      // If buttons already exist, just update active state — avoid rebuilding & leaking listeners
+      if (picker.children.length === themeKeys.length) {
+        Array.from(picker.children).forEach(btn => {
+          const key = btn.dataset.themeKey;
+          const isActive = CONFIG.activeTheme === key;
+          btn.className = 'theme-swatch' + (isActive ? ' active' : '');
+          btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
+        return;
+      }
+
       picker.innerHTML = '';
-      Object.keys(THEMES).forEach(key => {
+      themeKeys.forEach(key => {
         const preview = THEME_PREVIEWS[key];
         const btn = document.createElement('button');
         btn.className = 'theme-swatch' + (CONFIG.activeTheme === key ? ' active' : '');
         btn.title = key.charAt(0).toUpperCase() + key.slice(1);
         btn.setAttribute('aria-label', `${btn.title} theme`);
+        btn.setAttribute('aria-pressed', CONFIG.activeTheme === key ? 'true' : 'false');
+        btn.dataset.themeKey = key;
         btn.onclick = () => setTheme(key);
 
         const inner = document.createElement('div');
@@ -1211,11 +1226,12 @@
         // Sync the dropdown to reflect the chosen section
         sectionEl.value = section;
 
-        const [created] = await sb('items?select=*', {
+        const insertResult = await sb('items?select=*', {
           method: 'POST',
           prefer: 'return=representation',
           body: { name, section, emoji }
         });
+        const created = Array.isArray(insertResult) ? insertResult[0] : null;
         if (!created) throw new Error('No item returned from insert');
         items.push(created);
         setStatus(t('status.addedTo', { section }));
@@ -1506,11 +1522,12 @@
         return;
       }
       try {
-        const [created] = await sb('favorites?select=*', {
+        const favResult = await sb('favorites?select=*', {
           method: 'POST',
           prefer: 'return=representation',
           body: { name: item.name, section: item.section, emoji: item.emoji || '' }
         });
+        const created = Array.isArray(favResult) ? favResult[0] : null;
         if (!created) throw new Error('No favorite returned from insert');
         favorites.push(created);
         updateUI();
@@ -1533,11 +1550,12 @@
       const fav = favorites.find(f => f.id === favId);
       if (!fav) return;
       try {
-        const [created] = await sb('items?select=*', {
+        const favItemResult = await sb('items?select=*', {
           method: 'POST',
           prefer: 'return=representation',
           body: { name: fav.name, section: fav.section, emoji: fav.emoji || '' }
         });
+        const created = Array.isArray(favItemResult) ? favItemResult[0] : null;
         if (!created) throw new Error('No item returned from insert');
         items.push(created);
         updateUI();
@@ -1564,8 +1582,9 @@
 
     async function deleteSection(sectionName) {
       try {
-        await sb(`sections?name=eq.${encodeURIComponent(sectionName)}`, { method: 'DELETE' });
+        // Delete items first — if section delete then fails, no orphaned items remain
         await sb(`items?section=eq.${encodeURIComponent(sectionName)}`, { method: 'DELETE' });
+        await sb(`sections?name=eq.${encodeURIComponent(sectionName)}`, { method: 'DELETE' });
         sections = sections.filter(s => s !== sectionName);
         items = items.filter(i => i.section !== sectionName);
         updateUI();
@@ -1626,7 +1645,7 @@
           btn.classList.remove('copied');
         }, 2000);
       }).catch(() => {
-        setStatus('Could not access clipboard.', true);
+        setStatus(t('status.clipboardError'), true);
       });
     }
 
@@ -1699,10 +1718,10 @@
       const exitFocusBtn = document.getElementById('exitFocusBtn');
       banner.classList.remove('hidden');
       if (focusSection) {
-        document.getElementById('focusBannerText').textContent = `📍 Focusing on: ${focusSection}`;
+        document.getElementById('focusBannerText').textContent = t('focus.focusingOn', { section: focusSection });
         exitFocusBtn.classList.remove('hidden');
       } else {
-        document.getElementById('focusBannerText').textContent = '📍 All sections';
+        document.getElementById('focusBannerText').textContent = t('focus.allSections');
         exitFocusBtn.classList.add('hidden');
       }
 
@@ -1730,7 +1749,7 @@
         if (!focusSection) {
           const focusBtn = document.createElement('button');
           focusBtn.className = 'section-focus-btn';
-          focusBtn.textContent = 'Focus';
+          focusBtn.textContent = t('focus.focusBtn');
           focusBtn.setAttribute('aria-label', 'Focus on ' + section);
           focusBtn.onclick = () => enterFocus(section);
           headerBtns.appendChild(focusBtn);
@@ -1817,7 +1836,7 @@
           });
           sectionPicker.onchange = () => moveItemToSection(item.id, sectionPicker.value);
 
-          actions.append(sectionPicker, findLink, copyBtn, heartBtn, deleteBtn);
+          actions.append(findLink, copyBtn, heartBtn, deleteBtn, sectionPicker);
           row.append(checkBtn, nameSpan, actions);
           itemsDiv.appendChild(row);
         });
@@ -1847,6 +1866,7 @@
 
     function updateFavoritesUI() {
       const container = document.getElementById('favoritesContainer');
+      container.innerHTML = '';
       if (favorites.length === 0) {
         const emptyP = document.createElement('p');
         emptyP.className = 'empty-state';
@@ -1854,7 +1874,6 @@
         container.appendChild(emptyP);
         return;
       }
-      container.innerHTML = '';
       const list = document.createElement('div');
       list.className = 'fav-list';
       favorites.forEach(fav => {
