@@ -79,6 +79,7 @@ const STRINGS = {
       errorAddSection:    "Failed to add section.",
       errorDeleteSection: "Failed to delete section.",
       errorToggleCheck:   "Failed to update item.",
+      errorMoveItem:      "Failed to move item.",
     },
 
   },

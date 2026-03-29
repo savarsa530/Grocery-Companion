@@ -9,6 +9,8 @@
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     }
 
     :root {
@@ -68,8 +70,6 @@
       color: var(--color-text-primary);
       cursor: pointer;
       transition: all 0.15s;
-      touch-action: manipulation;
-      -webkit-tap-highlight-color: transparent;
     }
 
     button:hover {
@@ -83,8 +83,6 @@
     a {
       color: var(--color-text-info);
       text-decoration: none;
-      touch-action: manipulation;
-      -webkit-tap-highlight-color: transparent;
     }
 
     a:hover {
@@ -346,7 +344,7 @@
     }
 
     .hidden {
-      display: none;
+      display: none !important;
     }
 
     .fav-list {
@@ -642,7 +640,7 @@
     }
 
     #encourageToast.in  { animation: toastIn  0.25s ease forwards; }
-    #encourageToast.out { animation: toastOut 0.3s  ease forwards; }
+    #encourageToast.out { animation: toastOut 0.32s ease forwards; }
 
     /* ------------------------------------------------------------------ */
     /* Streak badge                                                         */
@@ -659,7 +657,7 @@
     }
 
     .streak-badge.hot {
-      color: #e07b00;
+      color: var(--color-text-danger);
     }
 
     /* Store name label — hidden on mobile, shown on desktop */
@@ -717,6 +715,32 @@
       flex-shrink: 0;
     }
 
+    /* Footer */
+    .app-footer {
+      text-align: center;
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+      padding: 1rem 0 0.5rem;
+    }
+
+    /* Inline section re-assignment picker */
+    .item-section-select {
+      font-size: 11px;
+      padding: 2px 4px;
+      border: 0.5px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-md);
+      background: transparent;
+      color: var(--color-text-secondary);
+      max-width: 90px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .item-section-select:hover {
+      border-color: var(--color-border-secondary);
+      color: var(--color-text-primary);
+    }
+
     /* ------------------------------------------------------------------ */
     /* Mobile layout (≤ 520px)                                             */
     /* ------------------------------------------------------------------ */
@@ -764,6 +788,11 @@
       .action-btn {
         min-height: 36px;
         padding: 6px 10px;
+      }
+
+      .item-section-select {
+        max-width: 72px;
+        font-size: 10px;
       }
 
       /* Hide "at Walmart" on small screens — button reads just "Find" */
@@ -828,14 +857,15 @@
         <input
           type="text"
           id="newItem"
-          onkeypress="handleKeyPress(event)"
+          aria-label="Item name"
+          onkeydown="handleKeyPress(event)"
         />
-        <select id="newSection"></select>
+        <select id="newSection" aria-label="Section"></select>
         <button id="addItemBtn" onclick="addItem()"></button>
       </div>
 
       <div id="quickAddContainer" class="hidden quick-add">
-        <label id="quickAddLabel" class="quick-add-label"></label>
+        <span id="quickAddLabel" class="quick-add-label"></span>
         <div id="quickAddButtons" class="quick-add-buttons"></div>
       </div>
     </div>
@@ -844,7 +874,7 @@
     <div id="shoppingListContainer" class="hidden">
       <div class="list-header">
         <h2 id="listTitle"></h2>
-        <button id="clearCheckedBtn" class="clear-checked-btn hidden" onclick="clearCheckedItems()"></button>
+        <button id="clearCheckedBtn" class="clear-checked-btn hidden" aria-label="Clear all checked items" onclick="clearCheckedItems()"></button>
       </div>
       <div class="progress-wrap">
         <div class="progress-label">
@@ -857,7 +887,7 @@
       </div>
       <div id="focusBanner" class="focus-banner hidden">
         <span id="focusBannerText"></span>
-        <button onclick="exitFocus()">Exit focus</button>
+        <button id="exitFocusBtn" onclick="exitFocus()">Exit focus</button>
       </div>
       <div id="shoppingList"></div>
     </div>
@@ -886,7 +916,8 @@
         <input
           type="text"
           id="newSectionName"
-          onkeypress="handleSectionKeyPress(event)"
+          aria-label="Section name"
+          onkeydown="handleSectionKeyPress(event)"
         />
         <button id="addSectionConfirmBtn" onclick="addNewSection()"></button>
         <button id="addSectionCancelBtn" onclick="cancelAddSection()"></button>
@@ -899,6 +930,10 @@
       <h2 id="favoritesTitle"></h2>
       <div id="favoritesContainer"></div>
     </div>
+
+    <footer class="app-footer">
+      <span id="appVersion"></span>
+    </footer>
   </div>
 
   <script src="config.js"></script>
@@ -933,6 +968,7 @@
     }
 
     function applyIdentity() {
+      document.documentElement.lang = CONFIG.locale || 'en';
       document.title = CONFIG.app.name;
       document.getElementById('appName').textContent = CONFIG.app.name;
       document.getElementById('appSubtitle').textContent = CONFIG.app.subtitle;
@@ -951,6 +987,7 @@
       document.getElementById('favoritesTitle').innerHTML        =
         `${t('favorites.title')} (<span id="favCountDetail">0</span>)`;
       document.getElementById('clearCheckedBtn').textContent     = t('list.clearChecked');
+      document.getElementById('appVersion').textContent         = `v${CONFIG.app.version}`;
     }
 
     // Re-apply theme if user switches system preference while the tab is open
@@ -1005,6 +1042,7 @@
     let items = [];
     let favorites = [];
     let sections = [];
+    let isAddingItem = false;
 
     // --- Supabase helpers ---
 
@@ -1035,10 +1073,25 @@
       bar.textContent = msg;
       bar.className = 'status-bar' + (isError ? ' error' : '');
       bar.classList.remove('hidden');
-      if (!isError) setTimeout(() => bar.classList.add('hidden'), 2500);
+      setTimeout(() => bar.classList.add('hidden'), isError ? 8000 : 2500);
     }
 
     // --- Data loading ---
+
+    async function seedDefaultSections() {
+      if (!CONFIG.defaultSections?.length) return;
+      try {
+        const inserts = CONFIG.defaultSections.map((name, i) => ({ name, position: i }));
+        const created = await sb('sections?select=*', {
+          method: 'POST',
+          prefer: 'return=representation',
+          body: inserts
+        });
+        sections = created.map(s => s.name);
+      } catch (e) {
+        console.error('Failed to seed default sections:', e);
+      }
+    }
 
     async function loadData() {
       try {
@@ -1048,6 +1101,7 @@
           sb('items?order=created_at.asc')
         ]);
         sections = sects.map(s => s.name);
+        if (sections.length === 0) await seedDefaultSections();
         favorites = favs;
         items = itms;
         updateUI();
@@ -1059,46 +1113,82 @@
 
     // --- Items ---
 
+    async function moveItemToSection(id, newSection) {
+      const item = items.find(i => i.id === id);
+      if (!item || item.section === newSection) return;
+      try {
+        await sb(`items?id=eq.${id}`, {
+          method: 'PATCH',
+          prefer: 'return=minimal',
+          body: { section: newSection }
+        });
+        item.section = newSection;
+        updateShoppingList();
+      } catch (e) {
+        setStatus(t('status.errorMoveItem'), true);
+      }
+    }
+
     async function categorizeItem(name) {
+      if (!sections.length) return { section: null, emoji: '' };
       try {
         const res = await fetch(CATEGORIZE_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          },
           body: JSON.stringify({ item: name, sections })
         });
+        if (!res.ok) {
+          console.warn('[categorize] edge function returned', res.status, res.statusText);
+          return { section: null, emoji: '' };
+        }
         const data = await res.json();
+        console.log('[categorize]', name, '→', data.section, '| available sections:', sections);
         return { section: data.section || null, emoji: data.emoji || '' };
       } catch (e) {
+        console.warn('[categorize] fetch failed:', e.message);
         return { section: null, emoji: '' };
       }
     }
 
     async function addItem() {
+      if (isAddingItem) return;
       const input = document.getElementById('newItem');
       const sectionEl = document.getElementById('newSection');
       const name = input.value.trim();
       if (!name) return;
 
+      isAddingItem = true;
       input.value = '';
       setStatus(t('status.categorizing'));
 
-      const { section: suggested, emoji } = await categorizeItem(name);
-      if (suggested && sections.includes(suggested)) {
-        sectionEl.value = suggested;
-      }
-
       try {
+        const { section: suggested, emoji } = await categorizeItem(name);
+        // Case-insensitive match so "dairy" matches "Dairy", etc.
+        const matched = suggested
+          ? sections.find(s => s.toLowerCase() === suggested.toLowerCase())
+          : null;
+        const section = matched || sectionEl.value;
+        // Sync the dropdown to reflect the chosen section
+        sectionEl.value = section;
+
         const [created] = await sb('items?select=*', {
           method: 'POST',
           prefer: 'return=representation',
-          body: { name, section: sectionEl.value, emoji }
+          body: { name, section, emoji }
         });
+        if (!created) throw new Error('No item returned from insert');
         items.push(created);
-        setStatus(t('status.addedTo', { section: sectionEl.value }));
+        setStatus(t('status.addedTo', { section }));
         updateUI();
       } catch (e) {
         setStatus(t('status.errorAddItem'), true);
         console.error(e);
+      } finally {
+        isAddingItem = false;
       }
     }
 
@@ -1180,7 +1270,7 @@
       }
       const isHot = count >= 3;
       badge.className = 'streak-badge' + (isHot ? ' hot' : '');
-      badge.textContent = isHot ? `🔥 ${count} week streak` : `⚡ ${count} week streak`;
+      badge.textContent = isHot ? `🔥 ${count} trip streak` : `⚡ ${count} trip streak`;
     }
 
     function initStreak() {
@@ -1297,6 +1387,8 @@
         if (checkEl) {
           checkEl.classList.toggle('checked', newVal);
           checkEl.textContent = newVal ? '✓' : '';
+          checkEl.setAttribute('aria-checked', newVal ? 'true' : 'false');
+          checkEl.setAttribute('aria-label', (newVal ? 'Uncheck' : 'Check off') + ' ' + item.name);
           checkEl.classList.remove('bouncing');
           void checkEl.offsetWidth; // force reflow to restart animation
           checkEl.classList.add('bouncing');
@@ -1314,8 +1406,14 @@
         // Show clear-checked button
         const anyChecked = items.some(i => i.checked);
         document.getElementById('clearCheckedBtn').classList.toggle('hidden', !anyChecked);
-        // Update section counts without full re-render
-        updateShoppingList();
+        // Update only the section count label — avoid a full re-render that would kill the animations
+        const sectionGroupEl = document.getElementById(`row-${id}`)?.closest('.section-group');
+        if (sectionGroupEl) {
+          const sectionItems = items.filter(i => i.section === item.section);
+          const unchecked = sectionItems.filter(i => !i.checked).length;
+          const countEl = sectionGroupEl.querySelector('h3');
+          if (countEl) countEl.textContent = `${item.section} (${unchecked}/${sectionItems.length})`;
+        }
 
         // Encouragement on check (not uncheck)
         if (newVal) showEncouragement();
@@ -1331,6 +1429,7 @@
     }
 
     async function clearCheckedItems() {
+      if (!items.some(i => i.checked)) return;
       try {
         await sb('items?checked=eq.true', { method: 'DELETE' });
         items = items.filter(i => !i.checked);
@@ -1374,8 +1473,9 @@
         const [created] = await sb('favorites?select=*', {
           method: 'POST',
           prefer: 'return=representation',
-          body: { name: item.name, section: item.section }
+          body: { name: item.name, section: item.section, emoji: item.emoji || '' }
         });
+        if (!created) throw new Error('No favorite returned from insert');
         favorites.push(created);
         updateUI();
       } catch (e) {
@@ -1400,8 +1500,9 @@
         const [created] = await sb('items?select=*', {
           method: 'POST',
           prefer: 'return=representation',
-          body: { name: fav.name, section: fav.section }
+          body: { name: fav.name, section: fav.section, emoji: fav.emoji || '' }
         });
+        if (!created) throw new Error('No item returned from insert');
         items.push(created);
         updateUI();
       } catch (e) {
@@ -1440,7 +1541,7 @@
     async function addNewSection() {
       const input = document.getElementById('newSectionName');
       const name = input.value.trim();
-      if (!name || sections.includes(name)) return;
+      if (!name || sections.some(s => s.toLowerCase() === name.toLowerCase())) return;
 
       try {
         await sb('sections?select=*', {
@@ -1488,6 +1589,8 @@
           btn.textContent = t('item.copy');
           btn.classList.remove('copied');
         }, 2000);
+      }).catch(() => {
+        setStatus('Could not access clipboard.', true);
       });
     }
 
@@ -1546,17 +1649,25 @@
       container.classList.remove('hidden');
       list.innerHTML = '';
 
+      // Auto-exit focus if the focused section no longer has any items
+      if (focusSection && !items.some(i => i.section === focusSection)) {
+        focusSection = null;
+      }
+
       // Show/hide "Clear checked" button
       const anyChecked = items.some(i => i.checked);
       document.getElementById('clearCheckedBtn').classList.toggle('hidden', !anyChecked);
 
-      // Focus banner
+      // Focus banner — always visible when list is shown
       const banner = document.getElementById('focusBanner');
+      const exitFocusBtn = document.getElementById('exitFocusBtn');
+      banner.classList.remove('hidden');
       if (focusSection) {
-        banner.classList.remove('hidden');
         document.getElementById('focusBannerText').textContent = `📍 Focusing on: ${focusSection}`;
+        exitFocusBtn.classList.remove('hidden');
       } else {
-        banner.classList.add('hidden');
+        document.getElementById('focusBannerText').textContent = '📍 All sections';
+        exitFocusBtn.classList.add('hidden');
       }
 
       const visibleSections = focusSection ? [focusSection] : sections;
@@ -1571,7 +1682,9 @@
         const header = document.createElement('div');
         header.className = 'section-header';
         const uncheckedCount = sectionItems.filter(i => !i.checked).length;
-        header.innerHTML = `<h3>${section} (${uncheckedCount}/${sectionItems.length})</h3>`;
+        const h3 = document.createElement('h3');
+        h3.textContent = `${section} (${uncheckedCount}/${sectionItems.length})`;
+        header.appendChild(h3);
 
         const headerBtns = document.createElement('div');
         headerBtns.style.display = 'flex';
@@ -1582,12 +1695,14 @@
           const focusBtn = document.createElement('button');
           focusBtn.className = 'section-focus-btn';
           focusBtn.textContent = 'Focus';
+          focusBtn.setAttribute('aria-label', 'Focus on ' + section);
           focusBtn.onclick = () => enterFocus(section);
           headerBtns.appendChild(focusBtn);
         }
 
         const clearBtn = document.createElement('button');
         clearBtn.textContent = t('list.clearSection');
+        clearBtn.setAttribute('aria-label', 'Clear all items from ' + section);
         clearBtn.onclick = () => clearSection(section);
         headerBtns.appendChild(clearBtn);
         header.appendChild(headerBtns);
@@ -1604,15 +1719,21 @@
           checkBtn.className = 'item-check' + (item.checked ? ' checked' : '');
           checkBtn.id = `check-${item.id}`;
           checkBtn.textContent = item.checked ? '✓' : '';
-          checkBtn.title = item.checked ? 'Uncheck' : 'Check off';
+          checkBtn.setAttribute('role', 'checkbox');
+          checkBtn.setAttribute('aria-checked', item.checked ? 'true' : 'false');
+          checkBtn.setAttribute('aria-label', (item.checked ? 'Uncheck' : 'Check off') + ' ' + item.name);
           checkBtn.onclick = () => toggleCheck(item.id);
 
           const nameSpan = document.createElement('span');
           nameSpan.className = 'item-name' + (item.checked ? ' checked' : '');
           nameSpan.id = `name-${item.id}`;
-          nameSpan.innerHTML = item.emoji
-            ? `<span class="item-emoji">${item.emoji}</span>${item.name}`
-            : item.name;
+          if (item.emoji) {
+            const emojiSpan = document.createElement('span');
+            emojiSpan.className = 'item-emoji';
+            emojiSpan.textContent = item.emoji;
+            nameSpan.appendChild(emojiSpan);
+          }
+          nameSpan.appendChild(document.createTextNode(item.name));
 
           const actions = document.createElement('div');
           actions.className = 'item-actions';
@@ -1622,7 +1743,11 @@
           findLink.target = '_blank';
           findLink.rel = 'noopener noreferrer';
           findLink.className = 'action-btn find';
-          findLink.innerHTML = `Find <span class="store-label">at ${resolveStore().name}</span>`;
+          findLink.appendChild(document.createTextNode('Find '));
+          const storeLabel = document.createElement('span');
+          storeLabel.className = 'store-label';
+          storeLabel.textContent = `at ${resolveStore().name}`;
+          findLink.appendChild(storeLabel);
 
           const copyBtn = document.createElement('button');
           copyBtn.id = `copy-${item.id}`;
@@ -1632,16 +1757,29 @@
 
           const heartBtn = document.createElement('button');
           heartBtn.className = 'action-btn heart';
-          heartBtn.title = t('item.favorite');
+          heartBtn.setAttribute('aria-label', t('item.favorite') + ': ' + item.name);
           heartBtn.textContent = '♡';
           heartBtn.onclick = () => addToFavorites(item.id);
 
           const deleteBtn = document.createElement('button');
           deleteBtn.className = 'action-btn delete';
+          deleteBtn.setAttribute('aria-label', 'Delete ' + item.name);
           deleteBtn.textContent = t('item.delete');
           deleteBtn.onclick = () => deleteItem(item.id);
 
-          actions.append(findLink, copyBtn, heartBtn, deleteBtn);
+          const sectionPicker = document.createElement('select');
+          sectionPicker.className = 'item-section-select';
+          sectionPicker.setAttribute('aria-label', 'Move ' + item.name + ' to section');
+          sections.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s;
+            opt.textContent = s;
+            if (s === item.section) opt.selected = true;
+            sectionPicker.appendChild(opt);
+          });
+          sectionPicker.onchange = () => moveItemToSection(item.id, sectionPicker.value);
+
+          actions.append(sectionPicker, findLink, copyBtn, heartBtn, deleteBtn);
           row.append(checkBtn, nameSpan, actions);
           itemsDiv.appendChild(row);
         });
@@ -1662,6 +1800,7 @@
         label.textContent = section;
         const btn = document.createElement('button');
         btn.textContent = '✕';
+        btn.setAttribute('aria-label', 'Remove section ' + section);
         btn.onclick = () => deleteSection(section);
         tag.append(label, btn);
         container.appendChild(tag);
@@ -1671,7 +1810,10 @@
     function updateFavoritesUI() {
       const container = document.getElementById('favoritesContainer');
       if (favorites.length === 0) {
-        container.innerHTML = `<p class="empty-state">${t('favorites.emptyState')}</p>`;
+        const emptyP = document.createElement('p');
+        emptyP.className = 'empty-state';
+        emptyP.textContent = t('favorites.emptyState');
+        container.appendChild(emptyP);
         return;
       }
       container.innerHTML = '';
@@ -1682,10 +1824,16 @@
         item.className = 'fav-item';
         const nameDiv = document.createElement('div');
         nameDiv.className = 'fav-name';
-        nameDiv.innerHTML = `<span>${fav.name}</span><span class="fav-section">${fav.section}</span>`;
+        const favNameSpan = document.createElement('span');
+        favNameSpan.textContent = fav.name;
+        const favSectionSpan = document.createElement('span');
+        favSectionSpan.className = 'fav-section';
+        favSectionSpan.textContent = fav.section;
+        nameDiv.append(favNameSpan, favSectionSpan);
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'fav-delete';
         deleteBtn.textContent = '✕';
+        deleteBtn.setAttribute('aria-label', 'Remove ' + fav.name + ' from favorites');
         deleteBtn.onclick = () => removeFavorite(fav.id);
         item.append(nameDiv, deleteBtn);
         list.appendChild(item);
@@ -1705,7 +1853,7 @@
       favorites.slice(0, 8).forEach(fav => {
         const btn = document.createElement('button');
         btn.className = 'quick-add-btn';
-        btn.textContent = `+ ${fav.name}`;
+        btn.textContent = fav.emoji ? `${fav.emoji} ${fav.name}` : `+ ${fav.name}`;
         btn.onclick = () => addFavoriteToList(fav.id);
         buttons.appendChild(btn);
       });
