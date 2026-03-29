@@ -106,6 +106,22 @@ const STRINGS = {
       focusBtn:     "Focus",
     },
 
+    // Section sort modes
+    sort: {
+      position: "↕",
+      alpha:    "A→Z",
+      checked:  "✓ last",
+    },
+
+    // Week Frame (planning horizon)
+    weekFrame: {
+      label:     "Shopping for",
+      today:     "Today",
+      threeDays: "3 days",
+      oneWeek:   "1 week",
+      twoWeeks:  "2 weeks",
+    },
+
     // Celebration overlay
     celebration: {
       btn:          "Let's go again 🛒",
@@ -155,6 +171,7 @@ const STRINGS = {
       errorMoveItem:      "Failed to move item.",
       errorUpdateQty:     "Failed to update quantity.",
       clipboardError:     "Could not access clipboard.",
+      errorEditItem:      "Failed to update item name.",
     },
 
   },

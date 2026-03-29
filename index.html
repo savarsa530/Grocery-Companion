@@ -290,11 +290,34 @@
     .item-name {
       flex: 1;
       transition: opacity 0.2s;
+      cursor: pointer;
+    }
+
+    .item-name:not(.checked):hover {
+      text-decoration: underline;
+      text-decoration-color: var(--color-text-tertiary);
+      text-underline-offset: 3px;
     }
 
     .item-name.checked {
       text-decoration: line-through;
       opacity: 0.45;
+      cursor: default;
+    }
+
+    /* Inline name editor */
+    .item-name-input {
+      font-size: 15px;
+      font-family: inherit;
+      color: var(--color-text-primary);
+      background: transparent;
+      border: none;
+      border-bottom: 1.5px solid var(--color-border-primary);
+      border-radius: 0;
+      padding: 0 2px;
+      width: 100%;
+      min-height: unset;
+      outline: none;
     }
 
     .list-header {
@@ -977,6 +1000,92 @@
     .item-row.drag-over-below { box-shadow: inset 0 -2px 0 var(--color-text-info); }
     .section-header.drag-over { background: var(--color-background-info); color: var(--color-text-info); }
 
+    /* Section drag handle */
+    .section-drag-handle {
+      color: var(--color-text-tertiary);
+      cursor: grab;
+      padding: 4px 8px 4px 0;
+      font-size: 14px;
+      flex-shrink: 0;
+      opacity: 0.35;
+      transition: opacity 0.15s;
+      user-select: none;
+    }
+    .section-drag-handle:hover { opacity: 1; }
+    .section-drag-handle:active { cursor: grabbing; }
+    .section-group.section-dragging { opacity: 0.35; }
+    .section-group.section-drag-over-above { box-shadow: 0 -2px 0 var(--color-text-info); }
+    .section-group.section-drag-over-below { box-shadow: 0 2px 0 var(--color-text-info); }
+
+    /* Section sort button */
+    .section-sort-btn {
+      font-size: 11px;
+      padding: 2px 8px;
+      border: 0.5px solid var(--color-border-tertiary);
+      color: var(--color-text-secondary);
+    }
+    .section-sort-btn.sort-active {
+      color: var(--color-text-info);
+      border-color: var(--color-text-info);
+      background: var(--color-background-info);
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Week Frame                                                          */
+    /* ------------------------------------------------------------------ */
+
+    .week-frame-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .week-frame-label {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .week-frame-pills {
+      display: flex;
+      gap: 4px;
+    }
+
+    .week-frame-pill {
+      font-size: 12px;
+      padding: 3px 12px;
+      border: 0.5px solid var(--color-border-tertiary);
+      border-radius: 99px;
+      background: transparent;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+      min-height: unset;
+    }
+
+    .week-frame-pill:hover {
+      border-color: var(--color-border-secondary);
+      color: var(--color-text-primary);
+      background: transparent;
+    }
+
+    .week-frame-pill.active {
+      background: var(--color-background-tertiary);
+      border-color: var(--color-border-secondary);
+      color: var(--color-text-primary);
+      font-weight: 500;
+    }
+
+    .week-frame-badge {
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+      margin-left: auto;
+      white-space: nowrap;
+    }
+
     /* ------------------------------------------------------------------ */
     /* Mobile layout (≤ 520px)                                             */
     /* ------------------------------------------------------------------ */
@@ -1135,6 +1244,7 @@
           <button id="clearCheckedBtn" class="clear-checked-btn hidden" aria-label="Clear all checked items" onclick="clearCheckedItems()"></button>
         </div>
       </div>
+      <div id="weekFrameBar" class="week-frame-bar"></div>
       <div class="progress-wrap">
         <div class="progress-label">
           <span id="progressText"></span>
@@ -1285,7 +1395,9 @@
       document.getElementById('saveTemplateCancelBtn').textContent  = t('templates.cancelBtn');
       document.getElementById('templateNameInput').placeholder   = t('templates.namePlaceholder');
       document.getElementById('celebrationBtn').textContent      = t('celebration.btn');
-      document.getElementById('appVersion').textContent          = `v${CONFIG.app.version}`;
+      document.getElementById('appVersion').textContent          = CONFIG.app.releaseDate
+        ? `v${CONFIG.app.version} · ${CONFIG.app.releaseDate}`
+        : `v${CONFIG.app.version}`;
     }
 
     // Re-apply theme if user switches system preference while the tab is open
@@ -1352,6 +1464,15 @@
       });
     }
 
+    const HORIZONS = [
+      { key: 'today',   label: () => t('weekFrame.today'),     days: 1  },
+      { key: '3days',   label: () => t('weekFrame.threeDays'), days: 3  },
+      { key: 'week',    label: () => t('weekFrame.oneWeek'),   days: 7  },
+      { key: '2weeks',  label: () => t('weekFrame.twoWeeks'),  days: 14 },
+    ];
+
+    let planningHorizon = 'week';
+
     let items = [];
     let favorites = [];
     let sections = [];
@@ -1363,6 +1484,75 @@
     // Drag-and-drop state
     let draggedItemId = null;
     let draggedItemSection = null;
+    let draggedSectionName = null;
+
+    // Section sort modes (persisted to localStorage)
+    let sectionSortModes = {};
+
+    function loadSectionSortModes() {
+      try { return JSON.parse(localStorage.getItem('gc-section-sorts')) || {}; }
+      catch { return {}; }
+    }
+
+    function saveSectionSortMode(section, mode) {
+      sectionSortModes[section] = mode;
+      localStorage.setItem('gc-section-sorts', JSON.stringify(sectionSortModes));
+    }
+
+    function cycleSectionSort(section) {
+      const modes = ['position', 'alpha', 'checked'];
+      const current = sectionSortModes[section] || 'position';
+      const next = modes[(modes.indexOf(current) + 1) % modes.length];
+      saveSectionSortMode(section, next);
+      updateShoppingList();
+    }
+
+    // --- Week Frame ---
+
+    function getTripBadge(count, days) {
+      const ratio = count / days;
+      if (ratio < 1.5) return 'Quick grab 💨';
+      if (ratio < 3)   return 'Solid haul 🛒';
+      if (ratio < 5)   return 'Full cart 🔥';
+      return 'Epic run 🏆';
+    }
+
+    function setHorizon(key) {
+      planningHorizon = key;
+      localStorage.setItem('gc-horizon', key);
+      updateWeekFrame();
+    }
+
+    function updateWeekFrame() {
+      const bar = document.getElementById('weekFrameBar');
+      if (!bar) return;
+      bar.innerHTML = '';
+
+      const label = document.createElement('span');
+      label.className = 'week-frame-label';
+      label.textContent = t('weekFrame.label') + ':';
+      bar.appendChild(label);
+
+      const pillGroup = document.createElement('div');
+      pillGroup.className = 'week-frame-pills';
+      HORIZONS.forEach(h => {
+        const pill = document.createElement('button');
+        pill.className = 'week-frame-pill' + (planningHorizon === h.key ? ' active' : '');
+        pill.textContent = h.label();
+        pill.onclick = () => setHorizon(h.key);
+        pillGroup.appendChild(pill);
+      });
+      bar.appendChild(pillGroup);
+
+      // Trip badge — visible once there are items
+      if (items.length > 0) {
+        const active = HORIZONS.find(h => h.key === planningHorizon);
+        const badge = document.createElement('span');
+        badge.className = 'week-frame-badge';
+        badge.textContent = getTripBadge(items.length, active.days);
+        bar.appendChild(badge);
+      }
+    }
 
     // --- Supabase helpers ---
 
@@ -2120,6 +2310,61 @@
       }
     }
 
+    // --- Inline item name editing ---
+
+    async function startEditItem(id) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+      const nameEl = document.getElementById(`name-${id}`);
+      if (!nameEl || nameEl.querySelector('.item-name-input')) return; // already editing
+
+      const originalHTML = nameEl.innerHTML;
+      let done = false; // guard against blur + keydown both firing
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'item-name-input';
+      input.value = item.name;
+      nameEl.innerHTML = '';
+      nameEl.appendChild(input);
+      input.focus();
+      input.select();
+
+      const doSave = async () => {
+        if (done) return;
+        done = true;
+        const newName = input.value.trim();
+        if (!newName || newName === item.name) {
+          nameEl.innerHTML = originalHTML;
+          return;
+        }
+        try {
+          await sb(`items?id=eq.${id}`, {
+            method: 'PATCH',
+            prefer: 'return=minimal',
+            body: { name: newName }
+          });
+          item.name = newName;
+          updateShoppingList();
+        } catch (e) {
+          setStatus(t('status.errorEditItem'), true);
+          nameEl.innerHTML = originalHTML;
+        }
+      };
+
+      const doCancel = () => {
+        if (done) return;
+        done = true;
+        nameEl.innerHTML = originalHTML;
+      };
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter')  { e.preventDefault(); doSave(); }
+        if (e.key === 'Escape') { e.preventDefault(); doCancel(); }
+      });
+      input.addEventListener('blur', doSave);
+    }
+
     // --- Drag-and-drop ---
 
     async function reorderItem(draggedId, targetId, targetSection, insertBefore) {
@@ -2156,6 +2401,25 @@
           sb(`items?id=eq.${item.id}`, { method: 'PATCH', prefer: 'return=minimal', body: { position: item.position } })
         )
       ).catch(e => console.error('Failed to persist order:', e));
+    }
+
+    async function reorderSection(draggedName, targetName, insertBefore) {
+      const fromIdx = sections.indexOf(draggedName);
+      const toIdx   = sections.indexOf(targetName);
+      if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return;
+      const adjustedToIdx = toIdx - (fromIdx < toIdx ? 1 : 0);
+      const insertIdx = insertBefore ? adjustedToIdx : adjustedToIdx + 1;
+      sections.splice(insertIdx, 0, sections.splice(fromIdx, 1)[0]);
+      updateShoppingList();
+      updateSectionSelect();
+      updateSectionsManager();
+      Promise.all(
+        sections.map((name, idx) =>
+          sb(`sections?name=eq.${encodeURIComponent(name)}`, {
+            method: 'PATCH', prefer: 'return=minimal', body: { position: idx }
+          })
+        )
+      ).catch(e => console.error('Failed to persist section order:', e));
     }
 
     async function updateQuantity(id, delta) {
@@ -2261,6 +2525,7 @@
 
       container.classList.remove('hidden');
       list.innerHTML = '';
+      updateWeekFrame();
 
       // Auto-exit focus if the focused section no longer has any items
       if (focusSection && !items.some(i => i.section === focusSection)) {
@@ -2286,13 +2551,51 @@
       const visibleSections = focusSection ? [focusSection] : sections;
 
       visibleSections.forEach(section => {
-        const sectionItems = items.filter(item => item.section === section);
-        if (sectionItems.length === 0) return;
+        const rawSectionItems = items.filter(item => item.section === section);
+        if (rawSectionItems.length === 0) return;
+
+        // Apply sort mode (display-only — does not touch DB positions)
+        const sortMode = sectionSortModes[section] || 'position';
+        let sectionItems;
+        if (sortMode === 'alpha') {
+          sectionItems = [...rawSectionItems].sort((a, b) => a.name.localeCompare(b.name));
+        } else if (sortMode === 'checked') {
+          sectionItems = [...rawSectionItems].sort((a, b) => {
+            if (a.checked === b.checked) return (a.position || 0) - (b.position || 0);
+            return a.checked ? 1 : -1;
+          });
+        } else {
+          sectionItems = [...rawSectionItems].sort((a, b) => (a.position || 0) - (b.position || 0));
+        }
 
         const isCollapsed = collapsedSections.has(section);
 
         const sectionDiv = document.createElement('div');
         sectionDiv.className = 'section-group' + (isCollapsed ? ' collapsed' : '');
+
+        // Section drag events (for reordering sections)
+        sectionDiv.addEventListener('dragover', (e) => {
+          if (!draggedSectionName || draggedSectionName === section) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          const rect = sectionDiv.getBoundingClientRect();
+          sectionDiv.classList.remove('section-drag-over-above', 'section-drag-over-below');
+          sectionDiv.classList.add(e.clientY < rect.top + rect.height / 2 ? 'section-drag-over-above' : 'section-drag-over-below');
+        });
+        sectionDiv.addEventListener('dragleave', (e) => {
+          if (!sectionDiv.contains(e.relatedTarget)) {
+            sectionDiv.classList.remove('section-drag-over-above', 'section-drag-over-below');
+          }
+        });
+        sectionDiv.addEventListener('drop', (e) => {
+          e.preventDefault();
+          const insertBefore = sectionDiv.classList.contains('section-drag-over-above');
+          sectionDiv.classList.remove('section-drag-over-above', 'section-drag-over-below');
+          if (!draggedSectionName || draggedSectionName === section) return;
+          const name = draggedSectionName;
+          draggedSectionName = null;
+          reorderSection(name, section, insertBefore);
+        });
 
         const header = document.createElement('div');
         header.className = 'section-header';
@@ -2301,8 +2604,9 @@
         header.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
 
         const toggleCollapse = (e) => {
-          // Don't collapse when clicking action buttons inside the header
+          // Don't collapse when clicking action buttons, selects, or the drag handle
           if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return;
+          if (e.target.closest('.section-drag-handle')) return;
           if (collapsedSections.has(section)) {
             collapsedSections.delete(section);
           } else {
@@ -2331,20 +2635,51 @@
           draggedItemId = null;
         });
 
-        const uncheckedCount = sectionItems.filter(i => !i.checked).length;
+        const uncheckedCount = rawSectionItems.filter(i => !i.checked).length;
+
+        // Section drag handle
+        const sectionHandle = document.createElement('span');
+        sectionHandle.className = 'section-drag-handle';
+        sectionHandle.textContent = '⠿';
+        sectionHandle.setAttribute('aria-hidden', 'true');
+        sectionHandle.draggable = true;
+        sectionHandle.addEventListener('dragstart', (e) => {
+          e.stopPropagation();
+          draggedSectionName = section;
+          draggedItemId = null;
+          e.dataTransfer.effectAllowed = 'move';
+          setTimeout(() => sectionDiv.classList.add('section-dragging'), 0);
+        });
+        sectionHandle.addEventListener('dragend', () => {
+          sectionDiv.classList.remove('section-dragging');
+          document.querySelectorAll('.section-drag-over-above, .section-drag-over-below').forEach(el => {
+            el.classList.remove('section-drag-over-above', 'section-drag-over-below');
+          });
+          draggedSectionName = null;
+        });
+
         const h3 = document.createElement('h3');
         const chevron = document.createElement('span');
         chevron.className = 'section-collapse-icon';
         chevron.setAttribute('aria-hidden', 'true');
         chevron.textContent = '▼';
         h3.appendChild(chevron);
-        h3.appendChild(document.createTextNode(`${section} (${uncheckedCount}/${sectionItems.length})`));
+        h3.appendChild(document.createTextNode(`${section} (${uncheckedCount}/${rawSectionItems.length})`));
+        header.appendChild(sectionHandle);
         header.appendChild(h3);
 
         const headerBtns = document.createElement('div');
         headerBtns.style.display = 'flex';
         headerBtns.style.gap = '6px';
         headerBtns.style.alignItems = 'center';
+
+        const sortMode = sectionSortModes[section] || 'position';
+        const sortBtn = document.createElement('button');
+        sortBtn.className = 'section-sort-btn' + (sortMode !== 'position' ? ' sort-active' : '');
+        sortBtn.textContent = t(`sort.${sortMode}`);
+        sortBtn.setAttribute('aria-label', `Cycle sort order for ${section}`);
+        sortBtn.onclick = (e) => { e.stopPropagation(); cycleSectionSort(section); };
+        headerBtns.appendChild(sortBtn);
 
         if (!focusSection) {
           const focusBtn = document.createElement('button');
@@ -2392,8 +2727,8 @@
             });
           });
           row.addEventListener('dragover', (e) => {
+            if (!draggedItemId || draggedItemId === item.id) return;
             e.preventDefault();
-            if (draggedItemId === item.id) return;
             e.dataTransfer.dropEffect = 'move';
             const rect = row.getBoundingClientRect();
             row.classList.remove('drag-over-above', 'drag-over-below');
@@ -2445,6 +2780,8 @@
           const nameSpan = document.createElement('span');
           nameSpan.className = 'item-name' + (item.checked ? ' checked' : '');
           nameSpan.id = `name-${item.id}`;
+          nameSpan.title = 'Click to edit';
+          nameSpan.onclick = () => startEditItem(item.id);
           if (item.emoji) {
             const emojiSpan = document.createElement('span');
             emojiSpan.className = 'item-emoji';
@@ -2658,6 +2995,8 @@
     });
 
     // Initialize
+    sectionSortModes = loadSectionSortModes();
+    planningHorizon = localStorage.getItem('gc-horizon') || 'week';
     loadSavedTheme();
     applyTheme();
     applyIdentity();
