@@ -1174,7 +1174,8 @@
           body: JSON.stringify({ item: name, sections })
         });
         if (!res.ok) {
-          console.warn('[categorize] edge function returned', res.status, res.statusText);
+          const errBody = await res.json().catch(() => ({}));
+          console.warn('[categorize] edge function returned', res.status, res.statusText, errBody);
           return { section: localSection, emoji: '' };
         }
         const data = await res.json();
