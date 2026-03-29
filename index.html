@@ -1157,6 +1157,12 @@
 
     async function categorizeItem(name) {
       if (!sections.length) return { section: null, emoji: '' };
+
+      // Run client-side match first — it's deterministic and correct for common items.
+      // The edge function has shown it returns wrong sections (e.g. Milk → Produce),
+      // so we only use its section suggestion when the local matcher has no result.
+      const localSection = fallbackCategorize(name);
+
       try {
         const res = await fetch(CATEGORIZE_URL, {
           method: 'POST',
@@ -1168,19 +1174,18 @@
           body: JSON.stringify({ item: name, sections })
         });
         if (!res.ok) {
-          console.warn('[categorize] edge function returned', res.status, res.statusText, '— using client fallback');
-          return { section: fallbackCategorize(name), emoji: '' };
+          console.warn('[categorize] edge function returned', res.status, res.statusText);
+          return { section: localSection, emoji: '' };
         }
         const data = await res.json();
-        console.log('[categorize]', name, '→', data.section, '| sections:', sections);
-        // If the edge function returned nothing useful, fall back client-side
-        if (!data.section) {
-          return { section: fallbackCategorize(name), emoji: '' };
-        }
-        return { section: data.section || null, emoji: data.emoji || '' };
+        console.log('[categorize]', name, '→ local:', localSection, '| edge:', data.section);
+        return {
+          section: localSection || data.section || null,
+          emoji: data.emoji || ''
+        };
       } catch (e) {
-        console.warn('[categorize] fetch failed:', e.message, '— using client fallback');
-        return { section: fallbackCategorize(name), emoji: '' };
+        console.warn('[categorize] fetch failed:', e.message);
+        return { section: localSection, emoji: '' };
       }
     }
 
