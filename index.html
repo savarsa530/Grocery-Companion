@@ -857,10 +857,11 @@
         <input
           type="text"
           id="newItem"
+          name="newItem"
           aria-label="Item name"
           onkeydown="handleKeyPress(event)"
         />
-        <select id="newSection" aria-label="Section"></select>
+        <select id="newSection" name="newSection" aria-label="Section"></select>
         <button id="addItemBtn" onclick="addItem()"></button>
       </div>
 
@@ -916,6 +917,7 @@
         <input
           type="text"
           id="newSectionName"
+          name="newSectionName"
           aria-label="Section name"
           onkeydown="handleSectionKeyPress(event)"
         />
@@ -1113,6 +1115,30 @@
 
     // --- Items ---
 
+    // Client-side categorization fallback — used when the edge function is unavailable.
+    // Maps common item keywords to section concept labels, then finds the best match
+    // in the user's actual section list (so "Dairy & Eggs" still matches "milk").
+    const CATEGORY_KEYWORD_SETS = [
+      { keywords: ['milk','cheese','yogurt','butter','cream','dairy','egg','eggs','kefir','whipping'], labels: ['dairy','refrigerat','eggs'] },
+      { keywords: ['apple','banana','lettuce','tomato','onion','garlic','pepper','carrot','celery','spinach','broccoli','cucumber','potato','avocado','lemon','lime','orange','grape','berry','berries','peach','plum','mango','pineapple','melon','corn','zucchini','squash','kale','arugula','mushroom','herb','cilantro','parsley','basil','ginger','produce','fruit','vegetable'], labels: ['produce','fruit','veg','fresh'] },
+      { keywords: ['chicken','beef','pork','turkey','salmon','fish','shrimp','steak','bacon','sausage','ham','lamb','tuna','crab','lobster','brisket','ribs','ground beef','ground turkey','meat','seafood','deli'], labels: ['meat','seafood','protein','deli'] },
+      { keywords: ['frozen','ice cream','popsicle','waffle','pizza','edamame','tater tots','fries'], labels: ['frozen'] },
+      { keywords: ['bread','pasta','rice','cereal','flour','sugar','oil','vinegar','sauce','soup','chips','crackers','coffee','tea','soda','water','juice','canned','beans','lentil','oat','granola','peanut butter','jelly','jam','honey','syrup','spice','salt','pepper','baking','snack','candy','chocolate','pantry'], labels: ['pantry','dry','grocery','staples','baking','snack','beverage'] },
+    ];
+
+    function fallbackCategorize(name) {
+      const n = name.toLowerCase();
+      for (const set of CATEGORY_KEYWORD_SETS) {
+        if (set.keywords.some(k => n.includes(k))) {
+          const match = sections.find(s =>
+            set.labels.some(l => s.toLowerCase().includes(l))
+          );
+          if (match) return match;
+        }
+      }
+      return null;
+    }
+
     async function moveItemToSection(id, newSection) {
       const item = items.find(i => i.id === id);
       if (!item || item.section === newSection) return;
@@ -1142,15 +1168,19 @@
           body: JSON.stringify({ item: name, sections })
         });
         if (!res.ok) {
-          console.warn('[categorize] edge function returned', res.status, res.statusText);
-          return { section: null, emoji: '' };
+          console.warn('[categorize] edge function returned', res.status, res.statusText, '— using client fallback');
+          return { section: fallbackCategorize(name), emoji: '' };
         }
         const data = await res.json();
-        console.log('[categorize]', name, '→', data.section, '| available sections:', sections);
+        console.log('[categorize]', name, '→', data.section, '| sections:', sections);
+        // If the edge function returned nothing useful, fall back client-side
+        if (!data.section) {
+          return { section: fallbackCategorize(name), emoji: '' };
+        }
         return { section: data.section || null, emoji: data.emoji || '' };
       } catch (e) {
-        console.warn('[categorize] fetch failed:', e.message);
-        return { section: null, emoji: '' };
+        console.warn('[categorize] fetch failed:', e.message, '— using client fallback');
+        return { section: fallbackCategorize(name), emoji: '' };
       }
     }
 
@@ -1769,6 +1799,8 @@
 
           const sectionPicker = document.createElement('select');
           sectionPicker.className = 'item-section-select';
+          sectionPicker.id   = `section-picker-${item.id}`;
+          sectionPicker.name = `section-picker-${item.id}`;
           sectionPicker.setAttribute('aria-label', 'Move ' + item.name + ' to section');
           sections.forEach(s => {
             const opt = document.createElement('option');
