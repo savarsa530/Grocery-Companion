@@ -11,14 +11,6 @@ A personal grocery list web app — shopping made intentional.
 - Manage custom store sections
 - All data persists via Supabase (shopping list, favorites, sections)
 
-## Linked Artifacts
-
-| Service | Link |
-|---|---|
-| Supabase Project | https://supabase.com/dashboard/project/lrmdawizqxfaoncddwnz |
-| Supabase Database | `db.lrmdawizqxfaoncddwnz.supabase.co` |
-| GitHub Repo | https://github.com/savarsa530/Grocery-Companion |
-
 ## Forking & Customization
 
 All personalization lives in `config.js` — it's the only file you need to edit.
@@ -84,8 +76,10 @@ Open `index.html` directly in a browser. No server required.
 
 ## Database Schema
 
-| Table | Columns |
+| Table | Purpose |
 |---|---|
-| `sections` | `id`, `name`, `position`, `created_at` |
-| `items` | `id`, `name`, `section`, `created_at` |
-| `favorites` | `id`, `name`, `section`, `created_at` |
+| `items` | Active shopping list items |
+| `favorites` | Saved items for quick re-adding |
+| `sections` | Store sections / categories |
+| `grocery_list` | Persistent grocery list state |
+| `templates` | Saved list templates |
