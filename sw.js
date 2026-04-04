@@ -4,7 +4,7 @@
  * Supabase API calls always go to the network.
  */
 
-const CACHE = 'grocery-v1.6.2';
+const CACHE = 'grocery-v2.0.0';
 const SHELL = [
   './',
   './index.html',
@@ -34,7 +34,9 @@ self.addEventListener('fetch', e => {
   // Always use network for Supabase (REST + Realtime) and CDN scripts
   if (
     e.request.url.includes('supabase.co') ||
-    e.request.url.includes('jsdelivr.net')
+    e.request.url.includes('jsdelivr.net') ||
+    e.request.url.includes('fonts.googleapis.com') ||
+    e.request.url.includes('fonts.gstatic.com')
   ) return;
 
   // Cache-first for app shell; fall back to network
