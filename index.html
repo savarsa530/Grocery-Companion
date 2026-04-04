@@ -1169,6 +1169,47 @@
       gap: 8px;
     }
 
+    /* ------------------------------------------------------------------ */
+    /* Collapsible Panels                                                   */
+    /* ------------------------------------------------------------------ */
+
+    .card-toggle-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      margin-bottom: 1rem;
+    }
+
+    .card-toggle-header.collapsed {
+      margin-bottom: 0;
+    }
+
+    .card-toggle-header h2 {
+      margin: 0;
+      pointer-events: none;
+    }
+
+    .card-chevron {
+      font-size: 13px;
+      color: var(--color-text-tertiary);
+      transition: transform 0.2s ease;
+      line-height: 1;
+    }
+
+    .card-chevron.collapsed {
+      transform: rotate(-90deg);
+    }
+
+    .card-body {
+      overflow: hidden;
+    }
+
+    .card-body.collapsed {
+      display: none;
+    }
+
   </style>
 </head>
 <body>
@@ -1292,32 +1333,47 @@
 
     <!-- Sections Manager -->
     <div class="card">
-      <h2 id="sectionsTitle"></h2>
-      <div id="sectionsContainer" class="tags-group"></div>
-      <div id="addSectionForm" class="hidden inline-add">
-        <input
-          type="text"
-          id="newSectionName"
-          name="newSectionName"
-          aria-label="Section name"
-          onkeydown="handleSectionKeyPress(event)"
-        />
-        <button id="addSectionConfirmBtn" onclick="addNewSection()"></button>
-        <button id="addSectionCancelBtn" onclick="cancelAddSection()"></button>
+      <div class="card-toggle-header" onclick="togglePanel('sections')">
+        <h2 id="sectionsTitle"></h2>
+        <span id="sectionsChevron" class="card-chevron">▾</span>
       </div>
-      <button id="addSectionBtn" onclick="showAddSectionForm()"></button>
+      <div id="sectionsBody" class="card-body">
+        <div id="sectionsContainer" class="tags-group"></div>
+        <div id="addSectionForm" class="hidden inline-add">
+          <input
+            type="text"
+            id="newSectionName"
+            name="newSectionName"
+            aria-label="Section name"
+            onkeydown="handleSectionKeyPress(event)"
+          />
+          <button id="addSectionConfirmBtn" onclick="addNewSection()"></button>
+          <button id="addSectionCancelBtn" onclick="cancelAddSection()"></button>
+        </div>
+        <button id="addSectionBtn" onclick="showAddSectionForm()"></button>
+      </div>
     </div>
 
     <!-- Favorites Manager -->
     <div class="card">
-      <h2 id="favoritesTitle"></h2>
-      <div id="favoritesContainer"></div>
+      <div class="card-toggle-header" onclick="togglePanel('favorites')">
+        <h2 id="favoritesTitle"></h2>
+        <span id="favoritesChevron" class="card-chevron">▾</span>
+      </div>
+      <div id="favoritesBody" class="card-body">
+        <div id="favoritesContainer"></div>
+      </div>
     </div>
 
     <!-- Templates Manager -->
     <div class="card">
-      <h2 id="templatesTitle"></h2>
-      <div id="templatesContainer"></div>
+      <div class="card-toggle-header" onclick="togglePanel('templates')">
+        <h2 id="templatesTitle"></h2>
+        <span id="templatesChevron" class="card-chevron">▾</span>
+      </div>
+      <div id="templatesBody" class="card-body">
+        <div id="templatesContainer"></div>
+      </div>
     </div>
 
     <footer class="app-footer">
@@ -1328,7 +1384,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="config.js"></script>
   <script src="strings.js"></script>
-  <script src="meals.js"></script>
   <script>
     const SUPABASE_URL = 'https://lrmdawizqxfaoncddwnz.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWRhd2l6cXhmYW9uY2Rkd256Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMjI2MDYsImV4cCI6MjA4OTU5ODYwNn0.jlPZgYiGC71jZVWZg_ub0WxFO53ONF42PApk3AsUEUw';
@@ -2739,11 +2794,54 @@
       container.appendChild(list);
     }
 
+    // --- Collapsible Panels ---
+
+    function togglePanel(id) {
+      const body    = document.getElementById(id + 'Body');
+      const chevron = document.getElementById(id + 'Chevron');
+      const header  = chevron && chevron.closest('.card-toggle-header');
+      if (!body) return;
+      const isNowCollapsed = body.classList.toggle('collapsed');
+      chevron && chevron.classList.toggle('collapsed', isNowCollapsed);
+      header  && header.classList.toggle('collapsed', isNowCollapsed);
+      try {
+        const state = JSON.parse(localStorage.getItem('gc-panels') || '{}');
+        state[id] = isNowCollapsed;
+        localStorage.setItem('gc-panels', JSON.stringify(state));
+      } catch (e) { /* ignore */ }
+    }
+
+    function restorePanelStates() {
+      try {
+        const state = JSON.parse(localStorage.getItem('gc-panels') || '{}');
+        ['sections', 'favorites', 'templates'].forEach(id => {
+          if (state[id]) {
+            const body    = document.getElementById(id + 'Body');
+            const chevron = document.getElementById(id + 'Chevron');
+            const header  = chevron && chevron.closest('.card-toggle-header');
+            body    && body.classList.add('collapsed');
+            chevron && chevron.classList.add('collapsed');
+            header  && header.classList.add('collapsed');
+          }
+        });
+      } catch (e) { /* ignore */ }
+    }
+
     // --- Meal Spinner ---
 
     let mealSpinnerOpen = false;
     let shownMeals = [];
+    let allMeals = [];
     const MEAL_SHOW_COUNT = 5;
+
+    async function loadMeals() {
+      try {
+        allMeals = await sb('meals?order=id.asc');
+      } catch (e) {
+        console.warn('Could not load meals from Supabase:', e.message);
+        allMeals = [];
+      }
+    }
 
     function openMealSpinner() {
       mealSpinnerOpen = true;
@@ -2757,7 +2855,7 @@
     }
 
     function shuffleMeals() {
-      const pool = [...MEALS];
+      const pool = [...allMeals];
       for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -2860,7 +2958,9 @@
     applyTheme();
     applyIdentity();
     renderThemePicker();
+    restorePanelStates();
     initStreak();
+    loadMeals();
     loadData().then(initRealtime);
 
     // Register service worker for offline/PWA support
