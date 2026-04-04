@@ -214,7 +214,7 @@ const CONFIG = {
   app: {
     name: "Sage & Steph Grocery Companion",
     subtitle: "Shopping made intentional.",
-    version: "1.6.2",
+    version: "1.7.0",
   },
 
   // --- Store ---
