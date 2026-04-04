@@ -23,7 +23,7 @@
       /* Colors are applied from config.js via applyTheme() */
       --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
       --border-radius-md: 8px;
-      --border-radius-lg: 12px;
+      --border-radius-lg: 14px;
     }
 
     body {
@@ -103,9 +103,10 @@
 
     h1 {
       font-size: 28px;
-      font-weight: 500;
+      font-weight: 700;
       margin: 0 0 0.5rem 0;
       color: var(--color-text-primary);
+      letter-spacing: -0.02em;
     }
 
     .subtitle {
@@ -119,12 +120,13 @@
       border: 0.5px solid var(--color-border-tertiary);
       border-radius: var(--border-radius-lg);
       padding: 1.5rem;
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 14px rgba(0,0,0,0.05);
     }
 
     h2 {
       font-size: 16px;
-      font-weight: 500;
+      font-weight: 600;
       margin: 0 0 1rem 0;
     }
 
@@ -165,11 +167,11 @@
     }
 
     .quick-add-btn {
-      padding: 6px 12px;
+      padding: 6px 14px;
       font-size: 13px;
       background: var(--color-background-primary);
       border: 0.5px solid var(--color-border-secondary);
-      border-radius: var(--border-radius-md);
+      border-radius: 99px;
       cursor: pointer;
       white-space: nowrap;
     }
@@ -180,6 +182,7 @@
       border-radius: var(--border-radius-lg);
       margin-bottom: 1rem;
       overflow: hidden;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.04);
     }
 
     .section-header {
@@ -192,10 +195,12 @@
     }
 
     .section-header h3 {
-      font-size: 14px;
-      font-weight: 500;
+      font-size: 12px;
+      font-weight: 600;
       margin: 0;
-      color: var(--color-text-primary);
+      color: var(--color-text-secondary);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
     }
 
     .section-header button {
@@ -218,6 +223,11 @@
       padding: 0.75rem;
       border-bottom: 0.5px solid var(--color-border-tertiary);
       font-size: 15px;
+      transition: background 0.12s;
+    }
+
+    .item-row:hover {
+      background: var(--color-background-tertiary);
     }
 
     .item-row:last-child {
@@ -264,8 +274,8 @@
 
     /* Check-off */
     .item-check {
-      width: 20px;
-      height: 20px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
       border: 1.5px solid var(--color-border-secondary);
       background: transparent;
@@ -390,8 +400,10 @@
 
     .empty-state {
       font-size: 14px;
-      color: var(--color-text-secondary);
+      color: var(--color-text-tertiary);
       margin: 0;
+      text-align: center;
+      padding: 1.25rem 0 0.5rem;
     }
 
     .inline-add {
@@ -523,7 +535,7 @@
     }
 
     .progress-track {
-      height: 8px;
+      height: 10px;
       background: var(--color-background-tertiary);
       border-radius: 99px;
       overflow: hidden;
@@ -532,7 +544,7 @@
 
     .progress-fill {
       height: 100%;
-      background: var(--color-text-success);
+      background: linear-gradient(90deg, var(--color-text-success) 0%, color-mix(in srgb, var(--color-text-success) 70%, white) 100%);
       border-radius: 99px;
       transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       width: 0%;
@@ -1170,6 +1182,45 @@
     }
 
     /* ------------------------------------------------------------------ */
+    /* Visual Polish                                                        */
+    /* ------------------------------------------------------------------ */
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    /* Primary "Add" button */
+    #addItemBtn {
+      background: var(--color-background-success);
+      color: var(--color-text-success);
+      border-color: var(--color-text-success);
+      font-weight: 600;
+    }
+
+    #addItemBtn:hover {
+      filter: brightness(0.94);
+      background: var(--color-background-success);
+    }
+
+    /* "What's for dinner?" tinted button */
+    #mealToggleBtn {
+      color: var(--color-text-info);
+      border-color: var(--color-text-info);
+      background: var(--color-background-info);
+      margin-left: 6px;
+    }
+
+    #mealToggleBtn:hover {
+      filter: brightness(0.94);
+      background: var(--color-background-info);
+    }
+
+    /* App name subtle treatment */
+    .app-header-text h1 {
+      line-height: 1.1;
+    }
+
+    /* ------------------------------------------------------------------ */
     /* Collapsible Panels                                                   */
     /* ------------------------------------------------------------------ */
 
@@ -1180,6 +1231,14 @@
       cursor: pointer;
       user-select: none;
       margin-bottom: 1rem;
+      padding: 6px 8px;
+      margin: -6px -8px 1rem -8px;
+      border-radius: var(--border-radius-md);
+      transition: background 0.12s;
+    }
+
+    .card-toggle-header:hover {
+      background: var(--color-background-tertiary);
     }
 
     .card-toggle-header.collapsed {
