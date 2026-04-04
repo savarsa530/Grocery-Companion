@@ -1,0 +1,175 @@
+/**
+ * Grocery Companion — UI Strings
+ *
+ * All user-facing text lives here. English-only for now.
+ *
+ * To add a new language:
+ *   1. Duplicate the `en` block below with the new locale key (e.g. `es`).
+ *   2. Translate every string value.
+ *   3. Set CONFIG.locale to the new key in config.js.
+ *
+ * Variable interpolation: use {varName} in any string.
+ * Example: "Added to {section}" → t('status.addedTo', { section: 'Produce' })
+ */
+
+const STRINGS = {
+
+  en: {
+
+    // Header
+    header: {
+      itemCount:    "{count} items",
+      favCount:     "{count} favorites",
+    },
+
+    // Add item card
+    addCard: {
+      title:        "Add to your list",
+      placeholder:  "What do you need?",
+      addBtn:       "Add item",
+    },
+
+    // Quick-add favorites strip
+    quickAdd: {
+      label:        "Quick add favorites",
+    },
+
+    // Shopping list
+    list: {
+      title:        "Your shopping list",
+      clearSection: "Clear section",
+      clearChecked: "Clear checked",
+      copyList:     "Copy list",
+      copyListDone: "Copied!",
+    },
+
+    // Per-item actions
+    item: {
+      findAt:       "Find at {store}",
+      copy:         "Copy",
+      copied:       "Copied!",
+      favorite:     "Save to favorites",
+      delete:       "✕",
+      increaseQty:  "Increase quantity of {name}",
+      decreaseQty:  "Decrease quantity of {name}",
+    },
+
+    // Sections manager
+    sections: {
+      title:        "Manage sections",
+      placeholder:  "New section name",
+      addBtn:       "Add",
+      cancelBtn:    "Cancel",
+      newBtn:       "+ Add section",
+    },
+
+    // Favorites manager
+    favorites: {
+      title:        "Your favorites",
+      emptyState:   "Heart items you shop for regularly, and they'll appear above as quick-add buttons.",
+    },
+
+    // Recipe import
+    recipe: {
+      toggleBtn:    "↓ Import from recipe",
+      toggleClose:  "↑ Close import",
+      placeholder:  "Paste a recipe URL or ingredient list…",
+      importBtn:    "Import items",
+      cancelBtn:    "Cancel",
+      importing:    "Importing…",
+      imported:     "Added {count} items",
+      noItems:      "No ingredients found.",
+      error:        "Could not import recipe.",
+    },
+
+    // List templates
+    templates: {
+      title:           "List templates",
+      emptyState:      "Save your current list as a reusable template.",
+      saveBtn:         "Save template",
+      modalTitle:      "Name this template",
+      namePlaceholder: "e.g. Weekly staples",
+      confirmBtn:      "Save",
+      cancelBtn:       "Cancel",
+      loadBtn:         "Load",
+      loaded:          "Added {count} items from \"{name}\".",
+      saved:           "Template saved.",
+      errorSave:       "Failed to save template.",
+      errorLoad:       "Failed to load template.",
+      errorDelete:     "Failed to delete template.",
+    },
+
+    // Focus mode
+    focus: {
+      allSections:  "📍 All sections",
+      focusingOn:   "📍 Focusing on: {section}",
+      focusBtn:     "Focus",
+    },
+
+    // Celebration overlay
+    celebration: {
+      btn:          "Let's go again 🛒",
+      messages: [
+        { emoji: '🏆', message: 'LIST CONQUERED!',        sub: 'You absolute legend.' },
+        { emoji: '🎉', message: 'YOU DID THE THING!',     sub: 'Future you is grateful.' },
+        { emoji: '🔥', message: "That's how it's done!",  sub: 'Grocery boss mode: activated.' },
+        { emoji: '✅', message: 'CLEAN SWEEP!',           sub: 'Every. Single. Item.' },
+        { emoji: '💪', message: "You're basically a pro.", sub: 'Certified grocery champion.' },
+        { emoji: '🚀', message: "LET'S GOOO!",            sub: 'Nothing could stop you.' },
+        { emoji: '✨', message: 'Nailed it.',              sub: 'Go treat yourself. You earned it.' },
+      ],
+    },
+
+    // Encouragement toasts (shown while checking off items)
+    encouragements: {
+      early: [
+        "Let's GOOO! 🚀", "First one down! 💪", "You started — that's everything.",
+        "Here we go! 🔥", "Off to the races! 🏁",
+      ],
+      middle: [
+        "Nice! 🔥", "Keep going! 💪", "You're on a roll!",
+        "Crushing it! ✨", "Look at you go 👀", "Smooth operator 😎",
+        "That's the spirit! 🙌", "One down!", "Making moves 🛒",
+        "Grocery legend in the making 🏆",
+      ],
+      late: [
+        "Almost there! 🏁", "SO close!", "Home stretch! 🎯",
+        "Don't stop now! ⚡", "Last few — you got this! 💥", "Finish line in sight! 👀",
+      ],
+    },
+
+    // Status / feedback messages
+    status: {
+      categorizing:       "Categorizing...",
+      addedTo:            "Added to {section}",
+      alreadyFavorite:    '"{name}" is already in favorites.',
+      noConnection:       "Could not connect to database. Check your connection.",
+      errorAddItem:       "Failed to add item.",
+      errorDeleteItem:    "Failed to delete item.",
+      errorClearSection:  "Failed to clear section.",
+      errorSaveFavorite:  "Failed to save favorite.",
+      errorRemoveFavorite:"Failed to remove favorite.",
+      errorAddSection:    "Failed to add section.",
+      errorDeleteSection: "Failed to delete section.",
+      errorToggleCheck:   "Failed to update item.",
+      errorMoveItem:      "Failed to move item.",
+      errorUpdateQty:     "Failed to update quantity.",
+      clipboardError:     "Could not access clipboard.",
+    },
+
+  },
+
+};
+
+/**
+ * Translate a dot-notation key, optionally interpolating variables.
+ *
+ * t('item.findAt', { store: 'Walmart' }) → "Find at Walmart"
+ * t('status.addedTo', { section: 'Produce' }) → "Added to Produce"
+ */
+function t(key, vars = {}) {
+  const locale = CONFIG.locale || 'en';
+  const dict = STRINGS[locale] || STRINGS.en;
+  const value = key.split('.').reduce((obj, k) => obj?.[k], dict) ?? key;
+  return String(value).replace(/\{(\w+)\}/g, (_, k) => (k in vars ? vars[k] : `{${k}}`));
+}
