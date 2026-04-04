@@ -28,12 +28,51 @@
       --border-radius-md: 10px;
       --border-radius-lg: 16px;
       --border-radius-xl: 22px;
+      --color-background-primary: #fdfcfa;
+      --color-background-secondary: #f6f4ef;
+      --color-background-tertiary: #edeae3;
+      --color-background-info: #e8eff8;
+      --color-background-success: #e6f0db;
+      --color-background-danger: #fae8e8;
+      --color-text-primary: #1c1b18;
+      --color-text-secondary: #7a766b;
+      --color-text-tertiary: #a8a49a;
+      --color-text-info: #3d6e9e;
+      --color-text-success: #4a7832;
+      --color-text-danger: #a33030;
+      --color-border-tertiary: rgba(0, 0, 0, 0.08);
+      --color-border-secondary: rgba(0, 0, 0, 0.15);
+      --color-border-primary: rgba(0, 0, 0, 0.28);
+      --color-accent: #8b6e4e;
+      --color-accent-muted: rgba(139, 110, 78, 0.10);
       --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
       --shadow-md: 0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
       --shadow-lg: 0 4px 20px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04);
       --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
       --transition-med: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-background-primary: #161514;
+        --color-background-secondary: #1e1d1a;
+        --color-background-tertiary: #121110;
+        --color-background-info: #0f1e2e;
+        --color-background-success: #141f0e;
+        --color-background-danger: #2a1010;
+        --color-text-primary: #e4e0d8;
+        --color-text-secondary: #968f82;
+        --color-text-tertiary: #5e5a52;
+        --color-text-info: #7eb5d6;
+        --color-text-success: #8aba6a;
+        --color-text-danger: #e08080;
+        --color-border-tertiary: rgba(255, 255, 255, 0.06);
+        --color-border-secondary: rgba(255, 255, 255, 0.12);
+        --color-border-primary: rgba(255, 255, 255, 0.20);
+        --color-accent: #c4a57a;
+        --color-accent-muted: rgba(196, 165, 122, 0.10);
+      }
     }
 
     body {
@@ -845,6 +884,112 @@
     }
 
     html { scroll-behavior: smooth; }
+
+    /* ── Ambient background ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      opacity: 0.4;
+      pointer-events: none;
+      z-index: -1;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 80%, var(--color-accent-muted, rgba(139,110,78,0.06)) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 80% at 85% 20%, var(--color-background-info) 0%, transparent 70%);
+      animation: ambientDrift 25s ease-in-out infinite alternate;
+    }
+    @keyframes ambientDrift {
+      0%   { opacity: 0.3; transform: scale(1) translateY(0); }
+      100% { opacity: 0.5; transform: scale(1.05) translateY(-15px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      body::before { animation: none; opacity: 0.3; }
+    }
+
+    /* ── Item entrance animation ── */
+    @keyframes itemSlideIn {
+      from { opacity: 0; transform: translateX(-8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .item-row { animation: itemSlideIn 0.25s ease-out both; }
+    .section-group { animation: itemSlideIn 0.3s ease-out both; }
+
+    /* ── Progress warmth ── */
+    .progress-track {
+      position: relative;
+      overflow: hidden;
+    }
+    .progress-track::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255,180,60,0.15) var(--progress-pct, 0%),
+        transparent var(--progress-pct, 0%));
+      border-radius: 99px;
+      transition: background 0.6s ease;
+      pointer-events: none;
+    }
+
+    /* ── Progress bar pulse when near complete ── */
+    @keyframes progressPulse {
+      0%, 100% { filter: brightness(1); }
+      50%      { filter: brightness(1.15); }
+    }
+    .progress-fill.near-complete {
+      animation: progressPulse 2s ease-in-out infinite;
+    }
+
+    /* ── Card entrance stagger ── */
+    .card {
+      animation: itemSlideIn 0.35s ease-out both;
+    }
+    .card:nth-child(1) { animation-delay: 0.05s; }
+    .card:nth-child(2) { animation-delay: 0.1s; }
+    .card:nth-child(3) { animation-delay: 0.15s; }
+    .card:nth-child(4) { animation-delay: 0.2s; }
+    .card:nth-child(5) { animation-delay: 0.25s; }
+
+    /* ── Share & list controls ── */
+    .list-controls {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .list-control-btn {
+      font-size: 11.5px;
+      padding: 4px 10px;
+      border: 1px solid var(--color-border-tertiary);
+      border-radius: 99px;
+      background: var(--color-background-secondary);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 500;
+      transition: all var(--transition-fast);
+      white-space: nowrap;
+    }
+    .list-control-btn:hover {
+      border-color: var(--color-accent, var(--color-border-secondary));
+      color: var(--color-text-primary);
+      background: var(--color-accent-muted, var(--color-background-tertiary));
+    }
+    .list-control-btn.share {
+      background: var(--color-accent-muted, var(--color-background-info));
+      color: var(--color-accent, var(--color-text-info));
+      border-color: transparent;
+    }
+    .list-control-btn.share:hover {
+      filter: brightness(0.95);
+    }
+    .list-id-label {
+      font-size: 10px;
+      color: var(--color-text-tertiary);
+      font-family: var(--font-sans);
+      letter-spacing: 0.03em;
+    }
   </style>
 </head>
 <body>
@@ -864,6 +1009,13 @@
       </div>
     </div>
     <div id="statusBar" class="status-bar hidden"></div>
+
+    <!-- List Controls -->
+    <div class="list-controls">
+      <button class="list-control-btn share" onclick="shareList()" title="Copy shareable link">Share list</button>
+      <button class="list-control-btn" onclick="newList()" title="Start a fresh list">New list</button>
+      <span class="list-id-label" id="listIdLabel"></span>
+    </div>
 
     <!-- Add Item Section -->
     <div class="card">
@@ -1022,9 +1174,76 @@
   <script src="config.js"></script>
   <script src="strings.js"></script>
   <script>
+    const SUPABASE_URL = 'https://lrmdawizqxfaoncddwnz.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWRhd2l6cXhmYW9uY2Rkd256Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMjI2MDYsImV4cCI6MjA4OTU5ODYwNn0.jlPZgYiGC71jZVWZg_ub0WxFO53ONF42PApk3AsUEUw';
     const CATEGORIZE_URL    = `${SUPABASE_URL}/functions/v1/categorize-item`;
     const PARSE_RECIPE_URL  = `${SUPABASE_URL}/functions/v1/parse-recipe`;
+
+    // --- List ID (shareable links) ---
+
+    function generateListId() {
+      const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+      let id = '';
+      for (let i = 0; i < 8; i++) id += chars[Math.floor(Math.random() * chars.length)];
+      return id;
+    }
+
+    function getListId() {
+      let id = window.location.hash.slice(1);
+      if (!id || id.length < 4) {
+        id = localStorage.getItem('gc-list-id');
+      }
+      if (!id || id.length < 4) {
+        id = generateListId();
+      }
+      localStorage.setItem('gc-list-id', id);
+      if (window.location.hash.slice(1) !== id) {
+        history.replaceState(null, '', '#' + id);
+      }
+      return id;
+    }
+
+    let LIST_ID = getListId();
+
+    function listFilter(baseQuery) {
+      const sep = baseQuery.includes('?') ? '&' : '?';
+      return `${baseQuery}${sep}list_id=eq.${LIST_ID}`;
+    }
+
+    function shareList() {
+      const url = window.location.origin + window.location.pathname + '#' + LIST_ID;
+      navigator.clipboard.writeText(url).then(() => {
+        setStatus('Link copied! Share it with anyone.');
+      }).catch(() => {
+        prompt('Copy this link to share your list:', url);
+      });
+    }
+
+    function newList() {
+      if (!confirm('Start a fresh list? Your current list will still be accessible via its link.')) return;
+      LIST_ID = generateListId();
+      localStorage.setItem('gc-list-id', LIST_ID);
+      history.replaceState(null, '', '#' + LIST_ID);
+      items = []; favorites = []; sections = []; templates = [];
+      updateListIdLabel();
+      loadData().then(initRealtime);
+    }
+
+    function updateListIdLabel() {
+      const el = document.getElementById('listIdLabel');
+      if (el) el.textContent = LIST_ID;
+    }
+
+    // Listen for hash changes (e.g. user pastes a shared link)
+    window.addEventListener('hashchange', () => {
+      const newId = window.location.hash.slice(1);
+      if (newId && newId.length >= 4 && newId !== LIST_ID) {
+        LIST_ID = newId;
+        localStorage.setItem('gc-list-id', LIST_ID);
+        updateListIdLabel();
+        loadData().then(initRealtime);
+      }
+    });
 
     // --- Config bootstrap ---
 
@@ -1200,13 +1419,23 @@
     async function seedDefaultSections() {
       if (!CONFIG.defaultSections?.length) return;
       try {
-        const inserts = CONFIG.defaultSections.map((name, i) => ({ name, position: i }));
-        const created = await sb('sections?select=*', {
-          method: 'POST',
-          prefer: 'return=representation',
-          body: inserts
-        });
-        sections = created.map(s => s.name);
+        // Insert sections one by one to handle potential unique constraints gracefully
+        for (let i = 0; i < CONFIG.defaultSections.length; i++) {
+          try {
+            await sb('sections?select=*', {
+              method: 'POST',
+              prefer: 'return=representation',
+              headers: { 'Prefer': 'return=representation,resolution=ignore-duplicates' },
+              body: { name: CONFIG.defaultSections[i], position: i, list_id: LIST_ID }
+            });
+          } catch (e) {
+            // If individual insert fails (duplicate), just skip it
+            console.warn('Section seed skipped:', CONFIG.defaultSections[i], e.message);
+          }
+        }
+        // Re-fetch to get whatever actually made it in
+        const freshSections = await sb(listFilter('sections?order=position.asc,name.asc'));
+        sections = freshSections.map(s => s.name);
       } catch (e) {
         console.error('Failed to seed default sections:', e);
       }
@@ -1215,10 +1444,10 @@
     async function loadData() {
       try {
         const [sects, favs, itms, tmps] = await Promise.all([
-          sb('sections?order=position.asc,name.asc'),
-          sb('favorites?order=created_at.asc'),
-          sb('items?order=position.asc,created_at.asc'),
-          sb('templates?order=created_at.asc'),
+          sb(listFilter('sections?order=position.asc,name.asc')),
+          sb(listFilter('favorites?order=created_at.asc')),
+          sb(listFilter('items?order=position.asc,created_at.asc')),
+          sb(listFilter('templates?order=created_at.asc')),
         ]);
         sections = sects.map(s => s.name);
         if (sections.length === 0) await seedDefaultSections();
@@ -1336,7 +1565,7 @@
         const matched = suggested
           ? sections.find(s => s.toLowerCase() === suggested.toLowerCase())
           : null;
-        const section = matched || sectionEl.value;
+        const section = matched || sectionEl.value || (sections.length > 0 ? sections[0] : '');
         // Sync the dropdown to reflect the chosen section
         sectionEl.value = section;
 
@@ -1345,7 +1574,7 @@
         const insertResult = await sb('items?select=*', {
           method: 'POST',
           prefer: 'return=representation',
-          body: { name, section, emoji, position }
+          body: { name, section, emoji, position, list_id: LIST_ID }
         });
         const created = Array.isArray(insertResult) ? insertResult[0] : null;
         if (!created) throw new Error('No item returned from insert');
@@ -1442,9 +1671,17 @@
       if (total === 0) return;
 
       const pct = Math.round((checked / total) * 100);
-      document.getElementById('progressFill').style.width = pct + '%';
+      const fill = document.getElementById('progressFill');
+      const track = document.querySelector('.progress-track');
+      fill.style.width = pct + '%';
       document.getElementById('progressText').textContent = `${checked} of ${total} items`;
       document.getElementById('progressPct').textContent  = pct + '%';
+
+      // Ambient warmth: track glow intensifies as you progress
+      if (track) track.style.setProperty('--progress-pct', pct + '%');
+
+      // Pulse when nearly done (>= 85%)
+      fill.classList.toggle('near-complete', pct >= 85 && pct < 100);
     }
 
     let confettiFrame;
@@ -1578,7 +1815,7 @@
     async function clearCheckedItems() {
       if (!items.some(i => i.checked)) return;
       try {
-        await sb('items?checked=eq.true', { method: 'DELETE' });
+        await sb(listFilter('items?checked=eq.true'), { method: 'DELETE' });
         items = items.filter(i => !i.checked);
         updateUI();
       } catch (e) {
@@ -1598,7 +1835,7 @@
 
     async function clearSection(sectionName) {
       try {
-        await sb(`items?section=eq.${encodeURIComponent(sectionName)}`, { method: 'DELETE' });
+        await sb(listFilter(`items?section=eq.${encodeURIComponent(sectionName)}`), { method: 'DELETE' });
         items = items.filter(i => i.section !== sectionName);
         updateUI();
       } catch (e) {
@@ -1620,7 +1857,7 @@
         const favResult = await sb('favorites?select=*', {
           method: 'POST',
           prefer: 'return=representation',
-          body: { name: item.name, section: item.section, emoji: item.emoji || '' }
+          body: { name: item.name, section: item.section, emoji: item.emoji || '', list_id: LIST_ID }
         });
         const created = Array.isArray(favResult) ? favResult[0] : null;
         if (!created) throw new Error('No favorite returned from insert');
@@ -1650,7 +1887,7 @@
         const favItemResult = await sb('items?select=*', {
           method: 'POST',
           prefer: 'return=representation',
-          body: { name: fav.name, section: fav.section, emoji: fav.emoji || '', position: favPosition }
+          body: { name: fav.name, section: fav.section, emoji: fav.emoji || '', position: favPosition, list_id: LIST_ID }
         });
         const created = Array.isArray(favItemResult) ? favItemResult[0] : null;
         if (!created) throw new Error('No item returned from insert');
@@ -1680,8 +1917,8 @@
     async function deleteSection(sectionName) {
       try {
         // Delete items first — if section delete then fails, no orphaned items remain
-        await sb(`items?section=eq.${encodeURIComponent(sectionName)}`, { method: 'DELETE' });
-        await sb(`sections?name=eq.${encodeURIComponent(sectionName)}`, { method: 'DELETE' });
+        await sb(listFilter(`items?section=eq.${encodeURIComponent(sectionName)}`), { method: 'DELETE' });
+        await sb(listFilter(`sections?name=eq.${encodeURIComponent(sectionName)}`), { method: 'DELETE' });
         sections = sections.filter(s => s !== sectionName);
         items = items.filter(i => i.section !== sectionName);
         updateUI();
@@ -1699,7 +1936,7 @@
         await sb('sections?select=*', {
           method: 'POST',
           prefer: 'return=representation',
-          body: { name, position: sections.length }
+          body: { name, position: sections.length, list_id: LIST_ID }
         });
         sections.push(name);
         input.value = '';
@@ -1826,7 +2063,7 @@
           const result = await sb('items?select=*', {
             method: 'POST',
             prefer: 'return=representation',
-            body: { name: parsed.name, section: sec, emoji: parsed.emoji || '', quantity: parsed.quantity || 1, note: parsed.note || '', position },
+            body: { name: parsed.name, section: sec, emoji: parsed.emoji || '', quantity: parsed.quantity || 1, note: parsed.note || '', position, list_id: LIST_ID },
           });
           const created = Array.isArray(result) ? result[0] : null;
           if (created) items.push(created);
@@ -1870,7 +2107,7 @@
         const result = await sb('templates?select=*', {
           method: 'POST',
           prefer: 'return=representation',
-          body: { name, items: templateItems },
+          body: { name, items: templateItems, list_id: LIST_ID },
         });
         const created = Array.isArray(result) ? result[0] : null;
         if (created) templates.push(created);
@@ -1895,7 +2132,7 @@
           const result = await sb('items?select=*', {
             method: 'POST',
             prefer: 'return=representation',
-            body: { name: ti.name, section: sec, emoji: ti.emoji || '', quantity: ti.quantity || 1, note: ti.note || '', position },
+            body: { name: ti.name, section: sec, emoji: ti.emoji || '', quantity: ti.quantity || 1, note: ti.note || '', position, list_id: LIST_ID },
           });
           const created = Array.isArray(result) ? result[0] : null;
           if (created) items.push(created);
@@ -1982,10 +2219,11 @@
 
     function initRealtime() {
       if (!window.supabase?.createClient) return;
+      if (realtimeChannel) realtimeChannel.unsubscribe();
       const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       realtimeChannel = sbClient
-        .channel('items-live')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'items' }, payload => {
+        .channel('items-live-' + LIST_ID)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'items', filter: `list_id=eq.${LIST_ID}` }, payload => {
           const { eventType, new: rec, old: old_ } = payload;
           if (eventType === 'INSERT') {
             if (!items.find(i => i.id === rec.id)) {
@@ -2084,7 +2322,15 @@
 
       const visibleSections = focusSection ? [focusSection] : sections;
 
-      visibleSections.forEach(section => {
+      // Collect sections that have items (including items with sections not in our list)
+      const allItemSections = [...new Set(items.map(i => i.section).filter(Boolean))];
+      const orphanSections = allItemSections.filter(s => !sections.includes(s));
+      const renderSections = focusSection ? [focusSection] : [...sections, ...orphanSections];
+
+      // Also handle items with empty/null section
+      const uncategorized = items.filter(i => !i.section);
+
+      renderSections.forEach(section => {
         const sectionItems = items.filter(item => item.section === section);
         if (sectionItems.length === 0) return;
 
@@ -2319,6 +2565,67 @@
         sectionDiv.appendChild(itemsDiv);
         list.appendChild(sectionDiv);
       });
+
+      // Render items with empty/null section under "Uncategorized"
+      if (uncategorized.length > 0 && !focusSection) {
+        const sectionDiv = document.createElement('div');
+        sectionDiv.className = 'section-group';
+        const header = document.createElement('div');
+        header.className = 'section-header';
+        const h3 = document.createElement('h3');
+        h3.textContent = `Uncategorized (${uncategorized.length})`;
+        header.appendChild(h3);
+        const itemsDiv = document.createElement('div');
+        itemsDiv.className = 'section-items';
+        uncategorized.forEach(item => {
+          const row = document.createElement('div');
+          row.className = 'item-row';
+          row.id = `row-${item.id}`;
+
+          const checkBtn = document.createElement('button');
+          checkBtn.className = 'item-check' + (item.checked ? ' checked' : '');
+          checkBtn.id = `check-${item.id}`;
+          checkBtn.textContent = item.checked ? '\u2713' : '';
+          checkBtn.setAttribute('role', 'checkbox');
+          checkBtn.setAttribute('aria-checked', item.checked ? 'true' : 'false');
+          checkBtn.onclick = () => toggleCheck(item.id);
+
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'item-name' + (item.checked ? ' checked' : '');
+          nameSpan.id = `name-${item.id}`;
+          nameSpan.textContent = item.name;
+
+          const actions = document.createElement('div');
+          actions.className = 'item-actions';
+          const deleteBtn = document.createElement('button');
+          deleteBtn.className = 'action-btn delete';
+          deleteBtn.textContent = '\u2715';
+          deleteBtn.onclick = () => deleteItem(item.id);
+
+          if (sections.length > 0) {
+            const sectionPicker = document.createElement('select');
+            sectionPicker.className = 'item-section-select';
+            sectionPicker.setAttribute('aria-label', 'Assign ' + item.name + ' to section');
+            const emptyOpt = document.createElement('option');
+            emptyOpt.value = '';
+            emptyOpt.textContent = 'Assign...';
+            sectionPicker.appendChild(emptyOpt);
+            sections.forEach(s => {
+              const opt = document.createElement('option');
+              opt.value = s; opt.textContent = s;
+              sectionPicker.appendChild(opt);
+            });
+            sectionPicker.onchange = () => { if (sectionPicker.value) moveItemToSection(item.id, sectionPicker.value); };
+            actions.appendChild(sectionPicker);
+          }
+          actions.appendChild(deleteBtn);
+          row.append(checkBtn, nameSpan, actions);
+          itemsDiv.appendChild(row);
+        });
+        sectionDiv.appendChild(header);
+        sectionDiv.appendChild(itemsDiv);
+        list.appendChild(sectionDiv);
+      }
     }
 
     function updateSectionsManager() {
@@ -2554,7 +2861,7 @@
             const result = await sb('items?select=*', {
               method: 'POST',
               prefer: 'return=representation',
-              body: { name: ingredient, section: sec, emoji: '', position },
+              body: { name: ingredient, section: sec, emoji: '', position, list_id: LIST_ID },
             });
             const created = Array.isArray(result) ? result[0] : null;
             if (created) { items.push(created); addedCount++; }
@@ -2604,6 +2911,7 @@
     renderThemePicker();
     restorePanelStates();
     initStreak();
+    updateListIdLabel();
     loadMeals();
     loadData().then(initRealtime);
 

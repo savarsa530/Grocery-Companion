@@ -5,81 +5,68 @@ A personal grocery list web app — shopping made intentional.
 ## Features
 
 - Add items to a shopping list organized by store section
+- AI-powered auto-categorization via Supabase Edge Function
 - Save frequently bought items as favorites for quick-add
-- One-click Walmart search link for any item
-- Copy item name to clipboard
-- Manage custom store sections
-- All data persists via Supabase (shopping list, favorites, sections)
+- One-click store search link for any item (Walmart, Target, Kroger, etc.)
+- Shareable lists — each list has its own URL, no login required
+- Shopping mode — stripped-down UI for in-store use
+- "What's for dinner?" meal spinner with one-click ingredient import
+- Recipe URL import — paste a link, get ingredients on your list
+- List templates — save and reload common shopping lists
+- Drag-and-drop reordering within and across sections
+- Progress tracking with ambient warmth effect
+- Celebration overlay with confetti on list completion
+- 5 built-in themes (Solstice, Sage, Ocean, Berry, Forest) with auto dark mode
+- PWA — installable, works offline (cached shell)
+- All data persists via Supabase (PostgreSQL)
+
+## Shareable Lists
+
+Every list has a unique ID in the URL hash (e.g. `#abc123`). Share the full URL with anyone — they'll see and edit the same list in real time. No login needed.
+
+- **Share**: Click "Share list" to copy the link
+- **New list**: Click "New list" to start fresh (old list stays accessible via its link)
+- First-time visitors get a random list ID automatically
 
 ## Forking & Customization
 
-All personalization lives in `config.js` — it's the only file you need to edit.
-
-**Change the app name:**
-```js
-app: {
-  name: "My Grocery Companion",
-  subtitle: "Let's get shopping.",
-}
-```
+All personalization lives in `config.js`.
 
 **Change the store:**
 ```js
 activeStore: "target",  // "walmart" | "target" | "kroger" | "instacart" | "amazon_fresh" | "whole_foods" | "costco"
 ```
 
-Or use any store not in the list:
-```js
-customStore: {
-  name: "My Local Market",
-  searchUrl: "https://mylocalmarket.com/search?q={query}",
-}
-```
-Use `{query}` as the placeholder for the search term.
-
 **Change the theme:**
 ```js
-activeTheme: "ocean",  // "sage" | "ocean" | "berry" | "forest"
+activeTheme: "solstice",  // "solstice" | "sage" | "ocean" | "berry" | "forest"
 ```
-Both light and dark variants are included in every preset and switch automatically with the OS setting.
-
-To use fully custom colors instead:
-```js
-customTheme: {
-  light: { backgroundPrimary: "#fff", backgroundSecondary: "#f5f5f5", ... },
-  dark:  { backgroundPrimary: "#111", backgroundSecondary: "#1a1a1a", ... },
-}
-```
-
-**Change default sections:**
-```js
-defaultSections: ["Produce", "Bakery", "Deli", "Drinks", "Other"],
-```
-
-**Add a new language (future):**
-
-All UI text lives in `strings.js`. To translate:
-1. Duplicate the `en` block with a new locale key (e.g. `es`)
-2. Translate every string value
-3. Set `CONFIG.locale = "es"` in `config.js`
-
-No changes to `index.html` required.
 
 ## Stack
 
-- Vanilla HTML / CSS / JavaScript (single file, no build step)
-- [Supabase](https://supabase.com) — PostgreSQL database via REST API
+- Vanilla HTML / CSS / JavaScript (no build step)
+- Outfit typeface via Google Fonts
+- Supabase — PostgreSQL database via REST API
 
-## Usage
+## Database Migration (shareable lists)
 
-Open `index.html` directly in a browser. No server required.
+Run this in the Supabase SQL Editor to enable shareable lists:
 
-## Database Schema
+```sql
+ALTER TABLE items ADD COLUMN IF NOT EXISTS list_id text DEFAULT 'default';
+ALTER TABLE favorites ADD COLUMN IF NOT EXISTS list_id text DEFAULT 'default';
+ALTER TABLE sections ADD COLUMN IF NOT EXISTS list_id text DEFAULT 'default';
+ALTER TABLE templates ADD COLUMN IF NOT EXISTS list_id text DEFAULT 'default';
 
-| Table | Purpose |
-|---|---|
-| `items` | Active shopping list items |
-| `favorites` | Saved items for quick re-adding |
-| `sections` | Store sections / categories |
-| `grocery_list` | Persistent grocery list state |
-| `templates` | Saved list templates |
+CREATE INDEX IF NOT EXISTS idx_items_list_id ON items(list_id);
+CREATE INDEX IF NOT EXISTS idx_favorites_list_id ON favorites(list_id);
+CREATE INDEX IF NOT EXISTS idx_sections_list_id ON sections(list_id);
+CREATE INDEX IF NOT EXISTS idx_templates_list_id ON templates(list_id);
+
+UPDATE items SET list_id = 'steph-main' WHERE list_id = 'default';
+UPDATE favorites SET list_id = 'steph-main' WHERE list_id = 'default';
+UPDATE sections SET list_id = 'steph-main' WHERE list_id = 'default';
+UPDATE templates SET list_id = 'steph-main' WHERE list_id = 'default';
+```
+
+After running, open the app with `#steph-main` in the URL to access existing data.
