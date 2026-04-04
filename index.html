@@ -1107,6 +1107,7 @@
       </div>
 
       <button id="importToggleBtn" class="import-toggle-btn" onclick="toggleRecipeImport()"></button>
+      <button id="mealToggleBtn" class="import-toggle-btn" onclick="openMealSpinner()">What's for dinner?</button>
       <div id="recipeImportPanel" class="recipe-import-panel hidden">
         <textarea
           id="recipeInput"
@@ -1122,6 +1123,19 @@
       <div id="quickAddContainer" class="hidden quick-add">
         <span id="quickAddLabel" class="quick-add-label"></span>
         <div id="quickAddButtons" class="quick-add-buttons"></div>
+      </div>
+    </div>
+
+    <!-- Meal Spinner -->
+    <div id="mealSpinnerCard" class="card hidden">
+      <div class="list-header" style="margin-bottom: 1rem;">
+        <h2>What's for dinner?</h2>
+        <button id="shuffleBtn" class="action-btn" onclick="shuffleMeals()">Shuffle ↺</button>
+      </div>
+      <div id="mealGrid" class="meal-grid"></div>
+      <div class="meal-spinner-actions">
+        <button id="addMealsBtn" onclick="addMealsToList()">Add to list</button>
+        <button onclick="closeMealSpinner()" style="color: var(--color-text-secondary);">Cancel</button>
       </div>
     </div>
 
@@ -2631,6 +2645,97 @@
         list.appendChild(item);
       });
       container.appendChild(list);
+    }
+
+    // --- Meal Spinner ---
+
+    let mealSpinnerOpen = false;
+    let shownMeals = [];
+    const MEAL_SHOW_COUNT = 5;
+
+    function openMealSpinner() {
+      mealSpinnerOpen = true;
+      document.getElementById('mealSpinnerCard').classList.remove('hidden');
+      shuffleMeals();
+    }
+
+    function closeMealSpinner() {
+      mealSpinnerOpen = false;
+      document.getElementById('mealSpinnerCard').classList.add('hidden');
+    }
+
+    function shuffleMeals() {
+      const pool = [...MEALS];
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      shownMeals = pool.slice(0, MEAL_SHOW_COUNT).map(m => ({ ...m, selected: false }));
+      renderMealGrid();
+    }
+
+    function toggleMealSelection(index) {
+      shownMeals[index].selected = !shownMeals[index].selected;
+      const card = document.getElementById('meal-card-' + index);
+      if (card) {
+        card.classList.toggle('selected', shownMeals[index].selected);
+        const circle = card.querySelector('.meal-check-circle');
+        if (circle) circle.textContent = shownMeals[index].selected ? '✓' : '';
+      }
+    }
+
+    function renderMealGrid() {
+      const grid = document.getElementById('mealGrid');
+      grid.innerHTML = shownMeals.map((meal, i) => {
+        const tags = meal.tags.map(tag => '<span class="meal-tag">' + tag + '</span>').join('');
+        return '<div class="meal-card' + (meal.selected ? ' selected' : '') + '" id="meal-card-' + i + '" onclick="toggleMealSelection(' + i + ')">'
+          + '<div class="meal-check-circle">' + (meal.selected ? '✓' : '') + '</div>'
+          + '<div class="meal-info">'
+          + '<div class="meal-name">' + meal.name + '</div>'
+          + '<div class="meal-tags">' + tags + '</div>'
+          + '</div></div>';
+      }).join('');
+    }
+
+    async function addMealsToList() {
+      if (isBulkAdding) return;
+      const selected = shownMeals.filter(m => m.selected);
+      if (selected.length === 0) {
+        setStatus('Select at least one meal first.', true);
+        return;
+      }
+      isBulkAdding = true;
+      const btn = document.getElementById('addMealsBtn');
+      btn.textContent = 'Adding...';
+      btn.disabled = true;
+      try {
+        let addedCount = 0;
+        for (const meal of selected) {
+          for (const ingredient of meal.ingredients) {
+            if (items.some(i => i.name.toLowerCase() === ingredient.toLowerCase())) continue;
+            const sec = fallbackCategorize(ingredient) || sections[sections.length - 1];
+            const sectionItems = items.filter(i => i.section === sec);
+            const position = sectionItems.length > 0 ? Math.max(...sectionItems.map(i => i.position || 0)) + 1 : 0;
+            const result = await sb('items?select=*', {
+              method: 'POST',
+              prefer: 'return=representation',
+              body: { name: ingredient, section: sec, emoji: '', position },
+            });
+            const created = Array.isArray(result) ? result[0] : null;
+            if (created) { items.push(created); addedCount++; }
+          }
+        }
+        const mealWord = selected.length === 1 ? 'meal' : 'meals';
+        setStatus('Added ' + addedCount + ' ingredient' + (addedCount !== 1 ? 's' : '') + ' from ' + selected.length + ' ' + mealWord + '.');
+        closeMealSpinner();
+        updateUI();
+      } catch (e) {
+        setStatus('Error adding ingredients.', true);
+        console.error(e);
+      } finally {
+        if (btn) { btn.textContent = 'Add to list'; btn.disabled = false; }
+        isBulkAdding = false;
+      }
     }
 
     // --- Escape key: dismiss modals and forms in priority order ---
